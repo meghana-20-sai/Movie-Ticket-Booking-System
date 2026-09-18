@@ -5,7 +5,7 @@ This project is pre-configured with a **Render Blueprint (`render.yaml`)** to de
 ---
 
 ## 1. Prerequisites
-1. **GitHub Account**: Push this repository to your GitHub account (`https://github.com/meghana-20-sai/Movie-Ticket-Booking-system-.git`).
+1. **GitHub Account**: Push this repository to your GitHub account (`https://github.com/meghana-20-sai/Movie-Ticket-Booking-System.git`).
 2. **Render Account**: Sign up or log in at [render.com](https://render.com).
 3. **MongoDB Atlas Account (Free Tier)**:
    - Go to [mongodb.com/atlas](https://www.mongodb.com/atlas/database).
@@ -20,7 +20,7 @@ This project is pre-configured with a **Render Blueprint (`render.yaml`)** to de
 
 1. Log in to your [Render Dashboard](https://dashboard.render.com).
 2. Click **New +** in the top right and select **Blueprint**.
-3. Connect your GitHub repository: `meghana-20-sai/Movie-Ticket-Booking-system-`.
+3. Connect your GitHub repository: `meghana-20-sai/Movie-Ticket-Booking-System`.
 4. Render will automatically detect `render.yaml` and configure:
    - **`smartcine-backend`** (Web Service, Node.js environment)
    - **`smartcine-frontend`** (Static Site, React/Vite SPA)
