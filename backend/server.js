@@ -22,6 +22,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import commandRoutes from './routes/commandRoutes.js';
 
 dotenv.config();
 
@@ -111,6 +112,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/commands', commandRoutes);
 
 // Error Handling
 app.use(notFound);

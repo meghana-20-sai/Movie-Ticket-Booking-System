@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { BookingProvider } from './context/BookingContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Layouts
 import UserLayout from './layouts/UserLayout';
@@ -35,86 +36,90 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
+import AdminCommandCenter from './pages/admin/AdminCommandCenter';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <SocketProvider>
-          <BookingProvider>
-            <Routes>
-              {/* Customer Facing Application */}
-              <Route path="/" element={<UserLayout />}>
-                <Route index element={<Home />} />
-                <Route path="movies" element={<Movies />} />
-                <Route path="movies/:movieId" element={<MovieDetails />} />
-                <Route path="theatres" element={<TheatresPage />} />
-                <Route path="offers" element={<OffersPage />} />
-                <Route path="seat-selection/:showId" element={<SeatSelection />} />
-                <Route path="booking-success/:bookingId" element={<BookingSuccess />} />
-                
-                {/* Protected Customer Routes */}
+      <ThemeProvider>
+        <AuthProvider>
+          <SocketProvider>
+            <BookingProvider>
+              <Routes>
+                {/* Customer Facing Application */}
+                <Route path="/" element={<UserLayout />}>
+                  <Route index element={<Home />} />
+                  <Route path="movies" element={<Movies />} />
+                  <Route path="movies/:movieId" element={<MovieDetails />} />
+                  <Route path="theatres" element={<TheatresPage />} />
+                  <Route path="offers" element={<OffersPage />} />
+                  <Route path="seat-selection/:showId" element={<SeatSelection />} />
+                  <Route path="booking-success/:bookingId" element={<BookingSuccess />} />
+
+                  {/* Protected Customer Routes */}
+                  <Route
+                    path="my-bookings"
+                    element={
+                      <ProtectedRoute>
+                        <MyBookings />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="bookings/:bookingId"
+                    element={
+                      <ProtectedRoute>
+                        <BookingDetails />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="profile"
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Authentication Routes */}
+                  <Route path="login" element={<Login />} />
+                  <Route path="register" element={<Register />} />
+                  <Route path="forgot-password" element={<ForgotPassword />} />
+                </Route>
+
+                {/* Admin Portal Suite */}
                 <Route
-                  path="my-bookings"
+                  path="/admin"
                   element={
-                    <ProtectedRoute>
-                      <MyBookings />
+                    <ProtectedRoute requireAdmin={true}>
+                      <AdminLayout />
                     </ProtectedRoute>
                   }
-                />
-                <Route
-                  path="bookings/:bookingId"
-                  element={
-                    <ProtectedRoute>
-                      <BookingDetails />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
+                >
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="command-center" element={<AdminCommandCenter />} />
+                  <Route path="movies" element={<AdminMovies />} />
+                  <Route path="theatres" element={<AdminTheatres />} />
+                  <Route path="screens" element={<AdminScreens />} />
+                  <Route path="seats" element={<AdminSeats />} />
+                  <Route path="shows" element={<AdminShows />} />
+                  <Route path="bookings" element={<AdminBookings />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="coupons" element={<AdminCoupons />} />
+                  <Route path="reviews" element={<AdminReviews />} />
+                  <Route path="analytics" element={<AdminAnalytics />} />
+                </Route>
 
-                {/* Authentication Routes */}
-                <Route path="login" element={<Login />} />
-                <Route path="register" element={<Register />} />
-                <Route path="forgot-password" element={<ForgotPassword />} />
-              </Route>
-
-              {/* Admin Portal Suite */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute requireAdmin={true}>
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<AdminDashboard />} />
-                <Route path="movies" element={<AdminMovies />} />
-                <Route path="theatres" element={<AdminTheatres />} />
-                <Route path="screens" element={<AdminScreens />} />
-                <Route path="seats" element={<AdminSeats />} />
-                <Route path="shows" element={<AdminShows />} />
-                <Route path="bookings" element={<AdminBookings />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="coupons" element={<AdminCoupons />} />
-                <Route path="reviews" element={<AdminReviews />} />
-                <Route path="analytics" element={<AdminAnalytics />} />
-              </Route>
-
-              {/* Catch-all redirect to Home */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </BookingProvider>
-        </SocketProvider>
-      </AuthProvider>
+                {/* Catch-all redirect to Home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </BookingProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }

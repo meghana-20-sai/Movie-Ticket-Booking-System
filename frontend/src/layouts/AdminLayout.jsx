@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -18,11 +18,21 @@ import {
   X,
   Sparkles,
   ArrowLeft,
+  Sun,
+  Moon,
+  Search,
+  Bell,
+  Sliders,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import CommandCenterModal from '../components/command/CommandCenterModal';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
 
 const navItems = [
   { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
+  { name: 'Command Center', path: '/admin/command-center', icon: Sparkles, badge: 'AI' },
   { name: 'Movies', path: '/admin/movies', icon: Film },
   { name: 'Theatres', path: '/admin/theatres', icon: Building2 },
   { name: 'Screens', path: '/admin/screens', icon: Tv },
@@ -37,9 +47,23 @@ const navItems = [
 
 const AdminLayout = () => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCommandModalOpen, setIsCommandModalOpen] = useState(false);
+
+  // Global Ctrl + K / Cmd + K shortcut
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -86,8 +110,24 @@ const AdminLayout = () => {
             </button>
           </div>
 
+          {/* Quick Command Launcher Button */}
+          <div className="p-3">
+            <button
+              onClick={() => setIsCommandModalOpen(true)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-cinema-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition-all group"
+            >
+              <span className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-brand-400 group-hover:animate-pulse" />
+                <span>Command Center</span>
+              </span>
+              <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[10px] font-mono text-slate-400">
+                ⌘K
+              </kbd>
+            </button>
+          </div>
+
           {/* Navigation Links */}
-          <div className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-160px)] scrollbar-thin">
+          <div className="px-3 py-1 space-y-1 overflow-y-auto max-h-[calc(100vh-230px)] scrollbar-thin">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive =
@@ -100,14 +140,21 @@ const AdminLayout = () => {
                   key={item.name}
                   to={item.path}
                   onClick={() => setIsSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.name}</span>
+                  <div className="flex items-center gap-3">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{item.name}</span>
+                  </div>
+                  {item.badge && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-brand-500/20 text-brand-300 text-[9px] font-black uppercase">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -155,8 +202,30 @@ const AdminLayout = () => {
             </div>
           </div>
 
-          {/* Admin Profile Pill */}
+          {/* Top Actions & Profile */}
           <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-cinema-900 hover:bg-cinema-800 border border-slate-800 text-slate-300 hover:text-white transition-all shadow-sm"
+              title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
+            >
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-brand-400" />}
+            </button>
+
+            {/* Quick Command shortcut button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsCommandModalOpen(true)}
+              className="hidden sm:flex items-center gap-2 text-xs border-slate-700"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-brand-400" />
+              <span>Ask Intelligence</span>
+              <kbd className="px-1 py-0.5 rounded bg-slate-900 text-[10px] font-mono text-slate-400">⌘K</kbd>
+            </Button>
+
+            {/* Admin Profile Pill */}
             <div className="flex items-center gap-2.5 bg-cinema-900 border border-slate-800 rounded-full py-1 px-3">
               <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-white font-bold text-xs">
                 {user?.name?.charAt(0) || 'A'}
@@ -174,6 +243,12 @@ const AdminLayout = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Global Command Center Dialog */}
+      <CommandCenterModal
+        isOpen={isCommandModalOpen}
+        onClose={() => setIsCommandModalOpen(false)}
+      />
     </div>
   );
 };
