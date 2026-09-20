@@ -122,6 +122,7 @@ const PORT = process.env.PORT || 5000;
 
 import { Movie } from './models/Movie.js';
 import { seedDatabase } from './seed/seedData.js';
+import { startSyncSchedule } from './services/movieSyncService.js';
 
 // Start Server & Connect Database
 const startServer = async () => {
@@ -137,6 +138,14 @@ const startServer = async () => {
 
     server.listen(PORT, () => {
       console.log(`🚀 SmartCine Server running on http://localhost:${PORT}`);
+
+      // Start periodic movie sync from TMDB (only if enabled)
+      if (process.env.MOVIE_SYNC_ENABLED === 'true') {
+        const intervalHours = parseInt(process.env.MOVIE_SYNC_INTERVAL_HOURS || '6', 10);
+        startSyncSchedule(intervalHours);
+      } else {
+        console.log('[Server] Movie sync disabled. Set MOVIE_SYNC_ENABLED=true to enable.');
+      }
     });
   } catch (error) {
     console.error('Failed to start server:', error);

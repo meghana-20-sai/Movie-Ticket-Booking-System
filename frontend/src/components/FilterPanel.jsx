@@ -1,8 +1,9 @@
 import React from 'react';
 import { Filter, RotateCcw } from 'lucide-react';
 
-const GENRES = ['Action', 'Sci-Fi', 'Adventure', 'Drama', 'Comedy', 'Thriller', 'Animation', 'Crime'];
-const LANGUAGES = ['Telugu', 'Hindi', 'English', 'Tamil', 'Malayalam'];
+const GENRES = ['Action', 'Sci-Fi', 'Adventure', 'Drama', 'Comedy', 'Thriller', 'Horror', 'Romance', 'Animation', 'Crime', 'Family', 'Fantasy', 'Mystery', 'Documentary'];
+const LANGUAGES = ['Telugu', 'Hindi', 'Tamil', 'Malayalam', 'Kannada', 'English', 'Bengali', 'Marathi', 'Punjabi', 'Japanese'];
+const INDUSTRIES = ['Tollywood', 'Kollywood', 'Bollywood', 'Mollywood', 'Sandalwood', 'Hollywood', 'Other'];
 const FORMATS = ['2D', '3D', 'IMAX', '4DX'];
 
 const FilterPanel = ({ filters, onFilterChange, onReset }) => {
@@ -27,9 +28,10 @@ const FilterPanel = ({ filters, onFilterChange, onReset }) => {
   const activeGenres = filters.genre ? filters.genre.split(',') : [];
   const activeLanguages = filters.language ? filters.language.split(',') : [];
   const activeFormats = filters.format ? filters.format.split(',') : [];
+  const activeIndustries = filters.industry ? filters.industry.split(',') : [];
 
   const hasActiveFilters =
-    filters.genre || filters.language || filters.format || filters.minRating;
+    filters.genre || filters.language || filters.format || filters.industry || filters.minRating;
 
   return (
     <div className="bg-cinema-900 border border-slate-800/80 rounded-2xl p-5 space-y-6">
@@ -47,6 +49,31 @@ const FilterPanel = ({ filters, onFilterChange, onReset }) => {
             <RotateCcw className="w-3 h-3" /> Reset All
           </button>
         )}
+      </div>
+
+      {/* Industries */}
+      <div>
+        <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2.5">
+          Industries
+        </h4>
+        <div className="flex flex-wrap gap-1.5">
+          {INDUSTRIES.map((ind) => {
+            const isSelected = activeIndustries.includes(ind);
+            return (
+              <button
+                key={ind}
+                onClick={() => toggleArrayFilter('industry', ind)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                  isSelected
+                    ? 'bg-rose-600 border-rose-500 text-white font-semibold shadow-md shadow-rose-600/30'
+                    : 'bg-cinema-850 hover:bg-slate-800 border-slate-800 text-slate-300'
+                }`}
+              >
+                {ind}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Languages */}

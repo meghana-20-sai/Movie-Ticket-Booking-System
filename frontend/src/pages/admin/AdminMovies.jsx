@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Film, Plus, Search, Edit2, Trash2, Star, Clock, X, Check } from 'lucide-react';
+import { Film, Plus, Search, Edit2, Trash2, Star, Clock, X, Check, RefreshCw, Sparkles, TrendingUp, Calendar, AlertCircle, CheckCircle2, Archive } from 'lucide-react';
 import { movieService } from '../../services/movieService';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
@@ -13,6 +13,12 @@ const AdminMovies = () => {
   const [editingMovie, setEditingMovie] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Sync state
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
+  const [togglingFeatured, setTogglingFeatured] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -47,13 +53,57 @@ const AdminMovies = () => {
     }
   };
 
+  const fetchSyncStatus = async () => {
+    try {
+      const res = await movieService.getSyncStatus();
+      if (res.success) setSyncStatus(res.data);
+    } catch (err) {
+      console.warn('Sync status unavailable');
+    }
+  };
+
   useEffect(() => {
     fetchMovies();
+    fetchSyncStatus();
   }, [statusFilter]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     fetchMovies();
+  };
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    setSyncMsg('Syncing movies...');
+    try {
+      const res = await movieService.syncMovies();
+      if (res.success) {
+        const { added, updated, errors, status } = res.data;
+        setSyncMsg(`✓ Added ${added} | Updated ${updated} | Errors ${errors} | ${status}`);
+        await fetchMovies();
+        await fetchSyncStatus();
+      }
+    } catch (err) {
+      setSyncMsg(`❌ Sync failed: ${err.message || 'Check MOVIE_API_KEY'}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleToggleFeatured = async (movieId) => {
+    setTogglingFeatured(movieId);
+    try {
+      const res = await movieService.toggleFeatured(movieId);
+      if (res.success) {
+        setMovies((prev) =>
+          prev.map((m) => (m._id === movieId ? { ...m, isFeatured: res.data.isFeatured } : m))
+        );
+      }
+    } catch (err) {
+      console.error('Toggle featured failed:', err);
+    } finally {
+      setTogglingFeatured(null);
+    }
   };
 
   const handleOpenAddModal = () => {
@@ -149,13 +199,101 @@ const AdminMovies = () => {
 
   return (
     <div className="space-y-6">
+      {/* Sync Status Panel */}
+      <div className="rounded-2xl border border-slate-800 bg-cinema-900 p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-black text-white flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-brand-400" />
+              Movie Catalog Sync
+            </h3>
+            {syncStatus ? (
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Last sync: {syncStatus.sync.lastRun ? new Date(syncStatus.sync.lastRun).toLocaleString() : 'Never'}
+                {syncStatus.sync.nextSync && ` · Next: ${new Date(syncStatus.sync.nextSync).toLocaleString()}`}
+                {!syncStatus.sync.apiKeyConfigured && ' · ⚠ MOVIE_API_KEY not set'}
+              </p>
+            ) : (
+              <p className="text-[10px] text-slate-500">Loading sync status...</p>
+            )}
+          </div>
+          <button
+            onClick={handleSyncNow}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600/20 hover:bg-brand-600 border border-brand-500/40 text-brand-300 hover:text-white text-xs font-bold transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : '🔄 Sync Movies Now'}
+          </button>
+        </div>
+
+        {/* Sync result message */}
+        {syncMsg && (
+          <p className={`text-xs font-semibold px-3 py-2 rounded-xl border ${
+            syncMsg.startsWith('❌')
+              ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+          }`}>{syncMsg}</p>
+        )}
+
+        {/* Catalog Stats */}
+        {syncStatus?.catalog && (
+          <div className="space-y-4">
+            {/* Status breakdown */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {[
+                { label: 'Total', value: syncStatus.catalog.total, color: 'text-white' },
+                { label: 'Now Showing', value: syncStatus.catalog.nowShowing, color: 'text-emerald-400' },
+                { label: 'Coming Soon', value: syncStatus.catalog.comingSoon, color: 'text-amber-400' },
+                { label: 'Ended', value: syncStatus.catalog.ended, color: 'text-slate-400' },
+                { label: 'Archived', value: syncStatus.catalog.archived, color: 'text-rose-400' },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center p-2 rounded-xl bg-cinema-850 border border-slate-800">
+                  <p className={`text-lg font-black ${stat.color}`}>{stat.value}</p>
+                  <p className="text-[10px] text-slate-500">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Language breakdown */}
+            {syncStatus.languages && Object.keys(syncStatus.languages).length > 0 && (
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-2">By Language</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(syncStatus.languages).map(([lang, count]) => (
+                    <div key={lang} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-600/10 border border-brand-500/20">
+                      <span className="text-[11px] font-semibold text-brand-300">{lang}</span>
+                      <span className="text-[10px] text-slate-400 font-bold">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Industry breakdown */}
+            {syncStatus.industries && Object.keys(syncStatus.industries).length > 0 && (
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-2">By Industry</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(syncStatus.industries).map(([ind, count]) => (
+                    <div key={ind} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-600/10 border border-rose-500/20">
+                      <span className="text-[11px] font-semibold text-rose-300">{ind}</span>
+                      <span className="text-[10px] text-slate-400 font-bold">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Top Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h2 className="text-xl font-black text-white">Movie Management</h2>
           <p className="text-xs text-slate-400">Add, edit, or configure cinema movie releases</p>
         </div>
-
         <button
           onClick={handleOpenAddModal}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all self-start sm:self-auto"
@@ -244,11 +382,28 @@ const AdminMovies = () => {
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                             : m.status === 'coming-soon'
                             ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                            : m.status === 'archived'
+                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
                             : 'bg-slate-800 text-slate-400'
                         }`}
                       >
                         {m.status.replace('-', ' ')}
                       </span>
+                    </td>
+                    {/* Featured Toggle */}
+                    <td className="py-3 px-4">
+                      <button
+                        onClick={() => handleToggleFeatured(m._id)}
+                        disabled={togglingFeatured === m._id}
+                        title={m.isFeatured ? 'Unfeature' : 'Set as Featured'}
+                        className={`p-1.5 rounded-lg transition-all ${
+                          m.isFeatured
+                            ? 'bg-brand-600/20 text-brand-400 hover:bg-rose-500/20 hover:text-rose-400'
+                            : 'bg-cinema-850 text-slate-500 hover:bg-brand-600/20 hover:text-brand-400'
+                        }`}
+                      >
+                        <Sparkles className={`w-4 h-4 ${togglingFeatured === m._id ? 'animate-spin' : ''}`} />
+                      </button>
                     </td>
                     <td className="py-3 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">

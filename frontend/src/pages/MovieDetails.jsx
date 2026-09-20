@@ -11,9 +11,16 @@ import {
   ShieldCheck,
   UserCheck,
   ChevronDown,
+  Bell,
+  Sparkles,
+  TrendingUp,
+  Flame,
+  Globe,
+  Users,
 } from 'lucide-react';
 import { movieService } from '../services/movieService';
 import { useAuth } from '../context/AuthContext';
+import MovieCard3D from '../components/3d/MovieCard3D';
 import DateSelector from '../components/DateSelector';
 import TheatreCard from '../components/TheatreCard';
 import TrailerModal from '../components/TrailerModal';
@@ -26,17 +33,25 @@ const MovieDetails = () => {
   const { city, isAuthenticated } = useAuth();
 
   const [movie, setMovie] = useState(null);
+  const [relatedMovies, setRelatedMovies] = useState([]);
   const [availableDates, setAvailableDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [theatresWithShows, setTheatresWithShows] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showsLoading, setShowsLoading] = useState(false);
+  const [notified, setNotified] = useState(false);
 
   const [trailerOpen, setTrailerOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
-  // 1. Fetch movie details and available dates
+  // Check watchlist/notification state from localStorage
+  useEffect(() => {
+    const watchlist = JSON.parse(localStorage.getItem('sc_watchlist') || '[]');
+    setNotified(watchlist.includes(movieId));
+  }, [movieId]);
+
+  // 1. Fetch movie details and available dates; increment view count
   useEffect(() => {
     const fetchMovieData = async () => {
       try {
@@ -49,6 +64,9 @@ const MovieDetails = () => {
 
         if (movieRes.success) {
           setMovie(movieRes.data);
+          setRelatedMovies(movieRes.related || []);
+          // Increment view count (fire and forget)
+          movieService.incrementView(movieId).catch(() => {});
         }
 
         if (datesRes.success && datesRes.data.length > 0) {
@@ -103,6 +121,25 @@ const MovieDetails = () => {
     setReviews((prev) => [newReview, ...prev]);
   };
 
+  const handleNotifyMe = () => {
+    const watchlist = JSON.parse(localStorage.getItem('sc_watchlist') || '[]');
+    if (notified) {
+      const updated = watchlist.filter((id) => id !== movieId);
+      localStorage.setItem('sc_watchlist', JSON.stringify(updated));
+      setNotified(false);
+    } else {
+      watchlist.push(movieId);
+      localStorage.setItem('sc_watchlist', JSON.stringify(watchlist));
+      setNotified(true);
+    }
+  };
+
+  // Compute dynamic status flags from model data
+  const isComingSoon = movie?.status === 'coming-soon' || (movie?.releaseDate && new Date(movie.releaseDate) > new Date());
+  const diffDays = movie?.releaseDate ? (new Date() - new Date(movie.releaseDate)) / (1000 * 60 * 60 * 24) : 999;
+  const isNewRelease = diffDays >= 0 && diffDays <= 30;
+  const hasNoShows = !isComingSoon && availableDates.length === 0 && !loading;
+
   if (loading) {
     return <LoadingSpinner text="Loading movie premiere details..." />;
   }
@@ -118,8 +155,6 @@ const MovieDetails = () => {
     );
   }
 
-  const isComingSoon = movie.status === 'coming-soon';
-
   return (
     <div className="space-y-12 pb-24">
       {/* Movie Hero Header with Backdrop */}
@@ -131,15 +166,15 @@ const MovieDetails = () => {
             alt={movie.title}
             className="w-full h-full object-cover object-top scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#090a0f] via-[#090a0f]/85 to-black/40"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#070913] via-[#070913]/85 to-black/40"></div>
         </div>
 
         {/* Content Details */}
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end">
-            {/* Poster Card */}
+            {/* Poster Card with 3D Tilt Hover */}
             <div className="hidden md:block md:col-span-1">
-              <div className="aspect-[2/3] w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-700/80 shadow-2xl">
+              <div className="aspect-[2/3] w-full rounded-2xl overflow-hidden bg-[#0d1222] border border-slate-700/80 shadow-[0_20px_50px_-10px_rgba(225,29,72,0.35)] hover:scale-105 transition-transform duration-500">
                 <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" />
               </div>
             </div>
@@ -148,10 +183,31 @@ const MovieDetails = () => {
             <div className="md:col-span-3 space-y-4">
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2">
+                {/* Official Yellow IMDb Badge */}
+                {(movie.imdbRating || movie.rating > 0) && (
+                  <a
+                    href={movie.imdbId ? `https://www.imdb.com/title/${movie.imdbId}` : 'https://www.imdb.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="imdb-badge text-xs font-black shadow-lg hover:scale-105 transition-transform cursor-pointer"
+                    title="View verified title on IMDb"
+                  >
+                    IMDb <span className="text-black font-black">{movie.imdbRating || (movie.rating * 1.8).toFixed(1)}</span>
+                    <span className="text-[10px] text-black/70 font-normal">({movie.imdbVotes || 'Verified'})</span>
+                  </a>
+                )}
+
                 {movie.rating > 0 && (
                   <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold text-xs">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    {movie.rating} / 5.0 ({movie.ratingCount} Ratings)
+                    {movie.rating} / 5.0
+                  </span>
+                )}
+
+                {movie.awards && (
+                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 font-semibold text-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    {movie.awards}
                   </span>
                 )}
 
@@ -163,6 +219,24 @@ const MovieDetails = () => {
                   <Clock className="w-3 h-3 text-slate-400" />
                   {Math.floor(movie.duration / 60)}h {movie.duration % 60}m
                 </span>
+
+                {isNewRelease && (
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold text-xs uppercase animate-pulse">
+                    🆕 New Release
+                  </span>
+                )}
+
+                {movie.isTrending && (
+                  <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 font-bold text-xs">
+                    <TrendingUp className="w-3 h-3" /> Trending
+                  </span>
+                )}
+
+                {movie.isFeatured && (
+                  <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-500/40 text-brand-400 font-bold text-xs">
+                    <Sparkles className="w-3 h-3" /> Featured
+                  </span>
+                )}
 
                 <span className="px-3 py-1 rounded-full bg-brand-950 border border-brand-500/40 text-brand-300 font-bold text-xs uppercase">
                   {movie.status.replace('-', ' ')}
@@ -211,7 +285,7 @@ const MovieDetails = () => {
 
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-4 pt-4">
-                {!isComingSoon && (
+                {!isComingSoon && !hasNoShows && (
                   <button
                     onClick={scrollToBookings}
                     className="flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-xl shadow-brand-600/30 hover:scale-105 active:scale-95 transition-all"
@@ -219,6 +293,26 @@ const MovieDetails = () => {
                     <Ticket className="w-4 h-4" />
                     <span>Book Tickets</span>
                   </button>
+                )}
+
+                {(isComingSoon || hasNoShows) && (
+                  <button
+                    onClick={handleNotifyMe}
+                    className={`flex items-center gap-2 px-7 py-3.5 rounded-2xl border font-bold text-sm hover:scale-105 active:scale-95 transition-all ${
+                      notified
+                        ? 'bg-violet-600/20 border-violet-500/40 text-violet-300'
+                        : 'bg-cinema-900/80 border-slate-700 text-slate-200 hover:border-violet-500/50'
+                    }`}
+                  >
+                    <Bell className={`w-4 h-4 ${notified ? 'fill-violet-400' : ''}`} />
+                    <span>{notified ? 'Notification Set ✓' : 'Notify Me'}</span>
+                  </button>
+                )}
+
+                {hasNoShows && !isComingSoon && (
+                  <span className="text-xs text-slate-400 italic py-2">
+                    Currently not available for booking in your city.
+                  </span>
                 )}
 
                 {movie.trailerUrl && (
@@ -231,7 +325,7 @@ const MovieDetails = () => {
                   </button>
                 )}
 
-                {isAuthenticated && (
+                {isAuthenticated && !isComingSoon && (
                   <button
                     onClick={() => setReviewModalOpen(true)}
                     className="flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-cinema-850 hover:bg-slate-800 border border-slate-700 text-amber-400 font-bold text-xs transition-all"
@@ -370,6 +464,32 @@ const MovieDetails = () => {
           <p className="text-xs text-slate-500 italic">No reviews yet. Be the first to share your thoughts!</p>
         )}
       </section>
+
+      {/* Related Movies */}
+      {relatedMovies.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t border-slate-900">
+          <h3 className="text-xl font-black text-white mb-6 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-brand-400" />
+            You Might Also Like
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {relatedMovies.map((rm) => (
+              <Link key={rm._id} to={`/movies/${rm._id}`} className="group block">
+                <div className="aspect-[2/3] rounded-xl overflow-hidden bg-slate-900 border border-slate-800 group-hover:border-brand-500/50 transition-all">
+                  <img
+                    src={rm.poster}
+                    alt={rm.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => { e.target.src = 'https://placehold.co/200x300/1e293b/94a3b8?text=SmartCine'; }}
+                    loading="lazy"
+                  />
+                </div>
+                <p className="mt-2 text-xs font-semibold text-slate-300 truncate group-hover:text-white transition-colors">{rm.title}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Modals */}
       <TrailerModal
