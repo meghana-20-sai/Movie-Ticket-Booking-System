@@ -92,7 +92,21 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
-// Health Check
+// Root and Health Check
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: '🎬 SmartCine API is running smoothly on Render!',
+    status: 'online',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/api/health',
+      movies: '/api/movies/now-showing',
+      theatres: '/api/theatres',
+    },
+  });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',

@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 
 const UserLayout = () => {
   return (
-    <div className="min-h-screen flex flex-col relative bg-[#070913] text-slate-100 selection:bg-rose-600 selection:text-white overflow-hidden">
+    <div className="min-h-screen flex flex-col relative bg-[#070913] text-slate-100 selection:bg-rose-600 selection:text-white overflow-x-hidden">
       {/* ── Creative & Attractive Ambient Cinema Lighting Layers ── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Top-Left Ruby Velvet Cinema Flare */}

@@ -58,6 +58,124 @@ const SkeletonRow = ({ count = 4 }) => (
   </div>
 );
 
+// ── Rolling Cinema Poster Card ─────────────────────────────
+const RollingCinemaCard = ({ movie, onWatchTrailer }) => {
+  const effectiveImdb = movie.imdbRating || (movie.rating > 0 ? (movie.rating * 1.8).toFixed(1) : null);
+  const lang = movie.originalLanguage || (Array.isArray(movie.language) ? movie.language[0] : movie.language) || 'Cinema';
+  const format = movie.formats?.includes('3D') ? '3D' : (movie.formats?.includes('IMAX') ? 'IMAX' : null);
+
+  return (
+    <div className="group/card relative w-[220px] sm:w-[245px] h-[335px] sm:h-[365px] rounded-2xl overflow-hidden bg-[#0d1222] border border-slate-800/90 shadow-xl transition-all duration-300 hover:border-rose-500/80 hover:shadow-[0_12px_35px_-8px_rgba(225,29,72,0.45),0_0_20px_-4px_rgba(245,197,24,0.3)] hover:-translate-y-1.5 flex-shrink-0 select-none">
+      {/* Poster image */}
+      <img
+        src={movie.poster}
+        alt={movie.title}
+        className="w-full h-full object-cover object-center transition-transform duration-500 group-hover/card:scale-105"
+        loading="lazy"
+      />
+
+      {/* Dark cinematic gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#070913] via-[#070913]/40 to-transparent" />
+
+      {/* Top Floating Badges */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
+        {effectiveImdb && (
+          <span className="imdb-badge text-[11px] font-black shadow-md">
+            IMDb {effectiveImdb}
+          </span>
+        )}
+        {format && (
+          <span className="px-2 py-0.5 rounded bg-gradient-to-r from-rose-600 to-amber-500 text-[10px] font-black uppercase text-white shadow-sm ml-auto">
+            {format}
+          </span>
+        )}
+      </div>
+
+      {/* Bottom Content & Interactive Quick Actions */}
+      <div className="absolute inset-x-0 bottom-0 p-3 z-10 space-y-1.5 bg-gradient-to-t from-[#070913] via-[#070913]/95 to-transparent">
+        <div className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-rose-600/30 border border-rose-500/40 text-rose-300 text-[10px] font-bold">
+            {lang}
+          </span>
+          {movie.genre && (
+            <span className="text-[10px] text-slate-400 font-medium truncate">
+              {movie.genre.split(' ').slice(0, 2).join(' ')}
+            </span>
+          )}
+        </div>
+
+        <h3 className="text-sm sm:text-base font-black text-white line-clamp-1 group-hover/card:text-amber-300 transition-colors">
+          {movie.title}
+        </h3>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 pt-0.5">
+          <Link to={`/movies/${movie._id || movie.id}`} className="flex-1">
+            <Button size="sm" className="w-full font-black bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white shadow-md text-xs h-7 px-2">
+              <Ticket className="w-3 h-3 mr-1" />
+              Book
+            </Button>
+          </Link>
+          {movie.trailerUrl && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onWatchTrailer?.(movie.trailerUrl, movie.title);
+              }}
+              className="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-rose-600 text-white flex items-center justify-center border border-slate-700 shadow-md transition-colors"
+              title="Watch Trailer"
+            >
+              <Play className="w-3 h-3 fill-white" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Ultra-Smooth Rolling Cinema Marquee ─────────────────────
+const RollingCinemaMarquee = ({ movies = [], loading = false, onWatchTrailer, direction = 'left' }) => {
+  if (loading && (!movies || movies.length === 0)) {
+    return (
+      <div className="flex items-center gap-5 overflow-hidden py-2 px-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="animate-pulse w-[220px] sm:w-[245px] h-[335px] sm:h-[365px] rounded-2xl bg-[#0d1222] border border-slate-800 flex-shrink-0" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!movies || movies.length === 0) return null;
+
+  // Build enough duplicates so track rolls seamlessly across any screen
+  let items = [...movies];
+  while (items.length < 10) {
+    items = [...items, ...movies];
+  }
+  const duplicated = [...items, ...items];
+
+  const animClass = direction === 'left' ? 'animate-rolling-left' : 'animate-rolling-right';
+
+  return (
+    <div className="relative overflow-hidden w-full rolling-marquee-track py-2">
+      {/* Left and Right Smooth Gradient Edge Fades */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-16 sm:w-28 bg-gradient-to-r from-[#070913] to-transparent z-20" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-16 sm:w-28 bg-gradient-to-l from-[#070913] to-transparent z-20" />
+
+      <div className={`flex items-center gap-5 w-max ${animClass}`}>
+        {duplicated.map((movie, idx) => (
+          <RollingCinemaCard
+            key={`${movie._id || movie.id || idx}-${idx}`}
+            movie={movie}
+            onWatchTrailer={onWatchTrailer}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ── Movie Section Component with Smooth Scrolling & Generous Whitespace ──
 const MovieSection = ({ icon: Icon, iconColor, title, subtitle, movies, loading, linkTo, linkLabel, onWatchTrailer, badgeType }) => {
   const scrollRef = useRef(null);
@@ -251,14 +369,14 @@ const Home = () => {
   const heroMovies = featured.length > 0 ? featured : nowShowing.slice(0, 5);
 
   return (
-    <div className="space-y-28 sm:space-y-36 pb-36 overflow-hidden">
+    <div className="space-y-10 sm:space-y-14 pb-28 overflow-x-hidden">
       {/* ── 3D Cinematic Hero Section with ChatGPT Realistic Cinema Background ── */}
-      <section className="relative w-full min-h-[840px] lg:min-h-[960px] flex items-center justify-center overflow-hidden py-16 sm:py-24">
+      <section className="relative w-full flex items-center justify-center overflow-hidden pt-8 pb-4">
         {/* Realistic 3D Cinema Theater Background from ChatGPT link */}
         <RealisticCinemaHeroBg movies={heroMovies} />
 
-        {/* Hero Central Content with Luxurious Whitespace */}
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8 pt-8 pb-10">
+        {/* Hero Central Content */}
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 pt-4 pb-2">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-600/20 border border-rose-500/40 text-rose-300 text-xs font-black uppercase tracking-widest shadow-lg shadow-rose-600/20 backdrop-blur-md animate-in fade-in duration-700">
             <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
@@ -266,7 +384,7 @@ const Home = () => {
           </div>
 
           {/* Main Hero Header */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight uppercase drop-shadow-2xl">
               SMART<span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-amber-400 to-indigo-400">CINE</span>
             </h1>
@@ -281,7 +399,7 @@ const Home = () => {
           </p>
 
           {/* Primary Action CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-5 pt-3">
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-1">
             <Link to="/movies">
               <Button size="lg" className="gap-2 font-black bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white shadow-xl shadow-rose-600/40 text-sm px-8 h-12 border-0">
                 <Ticket className="w-4 h-4" />
@@ -303,9 +421,9 @@ const Home = () => {
             </Button>
           </div>
 
-          {/* 3D Coverflow Hero Showcase with Generous Whitespace */}
-          <div className="pt-12 sm:pt-16 pb-4">
-            <div className="flex items-center justify-center gap-2 mb-3 text-xs font-black uppercase tracking-widest text-amber-400">
+          {/* 3D Coverflow Hero Showcase */}
+          <div className="pt-4 pb-2">
+            <div className="flex items-center justify-center gap-2 mb-2 text-xs font-black uppercase tracking-widest text-amber-400">
               <Award className="w-4 h-4" />
               <span>Featured 3D Blockbuster Coverflow</span>
             </div>
@@ -314,8 +432,56 @@ const Home = () => {
         </div>
       </section>
 
+      {/* ── Auto-Rolling Cinemas Reel (Directly in that space) ── */}
+      <section className="relative z-20 space-y-4 py-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
+          <div className="flex items-center justify-between gap-4 pb-2.5 border-b border-slate-800/80">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse">
+                <Flame className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2.5">
+                  <span>Rolling Cinemas Automatically</span>
+                  <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-amber-500 text-white uppercase tracking-wider shadow-sm animate-pulse">
+                    Live Auto-Roll
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Continuous automatic cinema reel • Hover any movie to pause, watch trailer & book seats
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to="/movies?status=now-showing"
+              className="flex items-center gap-1 text-xs font-bold text-rose-400 hover:text-amber-400 transition-colors"
+            >
+              <span>View All Now Showing</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Row 1: Rolling Left */}
+        <RollingCinemaMarquee
+          movies={nowShowing.length > 0 ? nowShowing : (featured.length > 0 ? featured : topImdb)}
+          loading={loadState.nowShowing && nowShowing.length === 0}
+          onWatchTrailer={handleWatchTrailer}
+          direction="left"
+        />
+
+        {/* Row 2: Rolling Right (Trending / Popular blockbusters) */}
+        <RollingCinemaMarquee
+          movies={trending.length > 0 ? trending : (topRated.length > 0 ? topRated : topImdb)}
+          loading={loadState.trending && trending.length === 0}
+          onWatchTrailer={handleWatchTrailer}
+          direction="right"
+        />
+      </section>
+
       {/* ── Main Content Container with Generous Whitespace & Spacing ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 space-y-28 sm:space-y-36">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 space-y-16 sm:space-y-20">
         {/* 🌟 IMDb Top-Rated Database Section with Language Tabs & Scrolling Rail 🌟 */}
         <section className="space-y-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-slate-800/80">
