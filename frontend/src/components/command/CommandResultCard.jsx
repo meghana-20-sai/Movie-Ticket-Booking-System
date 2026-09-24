@@ -201,7 +201,7 @@ export default function CommandResultCard({ data, rawInput, onExecuteCommand }) 
                   {movie.title}
                 </h4>
                 <p className="text-[11px] text-slate-400 truncate">
-                  {movie.genre?.join(', ')} • {movie.language?.join(', ')}
+                  {(Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre || '')} • {(Array.isArray(movie.language) ? movie.language.join(', ') : movie.language || '')}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
                   {movie.rating > 0 && (

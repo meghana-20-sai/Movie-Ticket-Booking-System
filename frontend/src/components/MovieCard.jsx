@@ -104,7 +104,12 @@ const MovieCard = ({ movie, onWatchTrailer }) => {
           </div>
 
           <div className="mt-2 flex flex-wrap gap-1">
-            {movie.genre?.slice(0, 2).map((g) => (
+            {(Array.isArray(movie.genre)
+              ? movie.genre
+              : typeof movie.genre === 'string'
+              ? movie.genre.split(' ')
+              : []
+            ).slice(0, 2).map((g) => (
               <span key={g} className="text-[10px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700/40">
                 {g}
               </span>

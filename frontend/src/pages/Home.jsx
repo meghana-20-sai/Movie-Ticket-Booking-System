@@ -99,7 +99,11 @@ const RollingCinemaCard = ({ movie, onWatchTrailer }) => {
           </span>
           {movie.genre && (
             <span className="text-[10px] text-slate-400 font-medium truncate">
-              {movie.genre.split(' ').slice(0, 2).join(' ')}
+              {Array.isArray(movie.genre)
+                ? movie.genre.slice(0, 2).join(' ')
+                : typeof movie.genre === 'string'
+                ? movie.genre.split(' ').slice(0, 2).join(' ')
+                : ''}
             </span>
           )}
         </div>

@@ -260,10 +260,13 @@ const MovieDetails = () => {
                     </span>
                   ))}
                 </div>
+                <span className="font-semibold">
+                  {Array.isArray(movie.language) ? movie.language.join(', ') : movie.language}
+                </span>
                 <span>•</span>
-                <span className="font-semibold">{movie.language?.join(', ')}</span>
-                <span>•</span>
-                <span>{movie.genre?.join(', ')}</span>
+                <span>
+                  {Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre}
+                </span>
               </div>
 
               {/* Synopsis */}

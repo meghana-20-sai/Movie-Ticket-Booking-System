@@ -172,7 +172,11 @@ export default function MovieCard3D({ movie, onWatchTrailer, badgeType }) {
             </span>
             <span className="text-slate-500">•</span>
             <span className="text-slate-400 truncate max-w-[170px]">
-              {movie.genre?.slice(0, 2).join(', ') || 'Action/Drama'}
+              {Array.isArray(movie.genre)
+                ? movie.genre.slice(0, 2).join(', ')
+                : typeof movie.genre === 'string'
+                ? movie.genre.split(' ').slice(0, 2).join(', ')
+                : 'Action/Drama'}
             </span>
           </div>
 
