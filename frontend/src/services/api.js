@@ -37,8 +37,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message =
-      error.response?.data?.message || error.message || 'An unexpected error occurred. Please try again.';
+    let message = error.response?.data?.message;
+    if (!message) {
+      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        message = 'Unable to reach backend server. If your server is on Render free tier, it may be waking up (please wait 30-45 seconds), or check that VITE_API_URL is correctly set.';
+      } else {
+        message = error.message || 'An unexpected error occurred. Please try again.';
+      }
+    }
     return Promise.reject(new Error(message));
   }
 );
