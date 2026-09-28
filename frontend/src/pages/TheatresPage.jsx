@@ -1,16 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, MapPin, Phone, Mail, Tv, Sparkles, Filter } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Building2,
+  MapPin,
+  Phone,
+  Mail,
+  Tv,
+  Sparkles,
+  Filter,
+  Ticket,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Film,
+  Calendar,
+} from 'lucide-react';
 import { movieService } from '../services/movieService';
 import { useAuth } from '../context/AuthContext';
+import { useBooking } from '../context/BookingContext';
+import { getFallbackMoviesForTheatre } from '../data/defaultTheatres';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 
 const TheatresPage = () => {
   const { city } = useAuth();
+  const navigate = useNavigate();
+  const { setCurrentMovie, setCurrentTheatre, setCurrentDate, setCurrentShow } = useBooking();
+
   const [theatres, setTheatres] = useState([]);
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState(city || 'all');
   const [loading, setLoading] = useState(true);
+  const [expandedTheatreId, setExpandedTheatreId] = useState(null);
+
+  const todayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -21,10 +44,10 @@ const TheatresPage = () => {
           movieService.getCities(),
         ]);
 
-        if (theatresRes.success) {
+        if (theatresRes.success && Array.isArray(theatresRes.data) && theatresRes.data.length > 0) {
           setTheatres(theatresRes.data);
         }
-        if (citiesRes.success) {
+        if (citiesRes.success && Array.isArray(citiesRes.data) && citiesRes.data.length > 0) {
           setCities(citiesRes.data);
         }
       } catch (error) {
@@ -37,6 +60,27 @@ const TheatresPage = () => {
     fetchData();
   }, [selectedCity]);
 
+  const handleToggleTheatre = (theatreId) => {
+    setExpandedTheatreId((prev) => (prev === theatreId ? null : theatreId));
+  };
+
+  const handleSelectShow = (theatre, movie, show) => {
+    setCurrentMovie(movie);
+    setCurrentTheatre(theatre);
+    setCurrentDate(todayStr);
+    setCurrentShow({
+      ...show,
+      movieId: movie._id,
+      theatreId: theatre._id,
+      date: todayStr,
+      startTime: show.time24 || show.time,
+      showTime: show.time,
+      format: show.format,
+      basePrice: show.price,
+    });
+    navigate(`/seat-selection/${show._id}`);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Header */}
@@ -44,7 +88,7 @@ const TheatresPage = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-white">Cinemas & Theatres</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Discover premier cinema complexes, IMAX laser auditoriums, and luxury lounges
+            Discover premier cinema complexes, IMAX laser auditoriums, and luxury lounges with instant seat booking
           </p>
         </div>
 
@@ -81,74 +125,140 @@ const TheatresPage = () => {
         <LoadingSpinner text="Locating cinema multiplexes..." />
       ) : theatres.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {theatres.map((theatre) => (
-            <div
-              key={theatre._id}
-              className="bg-cinema-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5 flex flex-col justify-between hover:border-slate-700 transition-all"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-brand-600/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-white">{theatre.name}</h3>
-                      <p className="text-xs text-brand-400 font-semibold">{theatre.city}</p>
-                    </div>
-                  </div>
-                </div>
+          {theatres.map((theatre) => {
+            const isExpanded = expandedTheatreId === theatre._id;
+            const theatreShowsData = getFallbackMoviesForTheatre(theatre._id);
 
-                <p className="text-xs text-slate-400 mt-3 flex items-start gap-1.5 leading-relaxed">
-                  <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
-                  <span>{theatre.address}</span>
-                </p>
-
-                {/* Formats */}
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {theatre.formats?.map((fmt) => (
-                    <span
-                      key={fmt}
-                      className="px-2.5 py-0.5 rounded-lg bg-brand-950 border border-brand-500/40 text-brand-300 font-bold text-[10px]"
-                    >
-                      {fmt}
-                    </span>
-                  ))}
-                  <span className="px-2.5 py-0.5 rounded-lg bg-cinema-850 border border-slate-800 text-slate-400 text-[10px] font-medium">
-                    {theatre.screenCount || 3} Screens
-                  </span>
-                </div>
-
-                {/* Amenities */}
-                {theatre.amenities && (
-                  <div className="mt-4 pt-3 border-t border-slate-800/80">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block mb-2">
-                      Multiplex Features
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {theatre.amenities.map((a) => (
-                        <span
-                          key={a}
-                          className="px-2 py-0.5 rounded-md bg-cinema-850 text-slate-300 text-[10px]"
-                        >
-                          {a}
-                        </span>
-                      ))}
+            return (
+              <div
+                key={theatre._id}
+                className={`bg-cinema-900 border rounded-3xl p-6 shadow-xl space-y-5 flex flex-col justify-between transition-all duration-300 ${
+                  isExpanded ? 'border-brand-500 shadow-brand-500/10' : 'border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-2xl bg-brand-600/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-white leading-tight">{theatre.name}</h3>
+                        <p className="text-xs text-brand-400 font-semibold">{theatre.city}</p>
+                      </div>
                     </div>
                   </div>
-                )}
+
+                  <p className="text-xs text-slate-400 mt-3 flex items-start gap-1.5 leading-relaxed">
+                    <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
+                    <span>{theatre.address}</span>
+                  </p>
+
+                  {/* Formats */}
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {theatre.formats?.map((fmt) => (
+                      <span
+                        key={fmt}
+                        className="px-2.5 py-0.5 rounded-lg bg-brand-950 border border-brand-500/40 text-brand-300 font-bold text-[10px]"
+                      >
+                        {fmt}
+                      </span>
+                    ))}
+                    <span className="px-2.5 py-0.5 rounded-lg bg-cinema-850 border border-slate-800 text-slate-400 text-[10px] font-medium">
+                      {theatre.screenCount || 3} Screens
+                    </span>
+                  </div>
+
+                  {/* Amenities */}
+                  {theatre.amenities && (
+                    <div className="mt-4 pt-3 border-t border-slate-800/80">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block mb-2">
+                        Multiplex Features
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {theatre.amenities.slice(0, 4).map((a) => (
+                          <span
+                            key={a}
+                            className="px-2 py-0.5 rounded-md bg-cinema-850 text-slate-300 text-[10px]"
+                          >
+                            {a}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Shows & Movies Section */}
+                <div className="pt-3 border-t border-slate-800/80 space-y-3">
+                  <button
+                    onClick={() => handleToggleTheatre(theatre._id)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-md shadow-brand-600/30 transition-all"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Ticket className="w-4 h-4" />
+                      <span>{isExpanded ? 'Hide Showtimes' : 'View Shows & Book Tickets'}</span>
+                    </div>
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+
+                  {/* Expanded Movie Showtimes */}
+                  {isExpanded && (
+                    <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <p className="text-[10px] uppercase font-bold text-brand-400 tracking-wider">
+                        Now Showing Today ({theatreShowsData.movies.length} Blockbusters)
+                      </p>
+
+                      <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                        {theatreShowsData.movies.map((mov) => (
+                          <div
+                            key={mov._id}
+                            className="p-3 rounded-2xl bg-cinema-850 border border-slate-800 space-y-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-white truncate max-w-[180px]">
+                                {mov.title}
+                              </span>
+                              <span className="text-[10px] text-amber-400 font-bold">
+                                ⭐ {mov.rating}
+                              </span>
+                            </div>
+
+                            {/* Showtimes Buttons */}
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {mov.shows.map((shw) => (
+                                <button
+                                  key={shw._id}
+                                  onClick={() => handleSelectShow(theatre, mov, shw)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-cinema-900 hover:bg-brand-600 border border-slate-700/80 hover:border-brand-500 text-white text-[11px] font-bold transition-all shadow-sm flex items-center gap-1"
+                                  title={`Book ${mov.title} at ${shw.time} (${shw.format})`}
+                                >
+                                  <Clock className="w-3 h-3 text-brand-400 group-hover:text-white" />
+                                  <span>{shw.time}</span>
+                                  <span className="text-[9px] text-slate-400 font-normal">
+                                    {shw.format}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {theatre.contactInfo?.phone && (
+                    <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                      <span className="flex items-center gap-1 text-[11px]">
+                        <Phone className="w-3 h-3 text-brand-500" />
+                        {theatre.contactInfo.phone}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              {theatre.contactInfo?.phone && (
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                  <span className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-brand-500" />
-                    {theatre.contactInfo.phone}
-                  </span>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <EmptyState

@@ -19,6 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 import { movieService } from '../services/movieService';
+import { getFallbackShowsForMovie } from '../data/defaultTheatres';
 import { useAuth } from '../context/AuthContext';
 import MovieCard3D from '../components/3d/MovieCard3D';
 import DateSelector from '../components/DateSelector';
@@ -32,11 +33,20 @@ const MovieDetails = () => {
   const { movieId } = useParams();
   const { city, isAuthenticated } = useAuth();
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const defaultDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split('T')[0];
+  });
+
   const [movie, setMovie] = useState(null);
   const [relatedMovies, setRelatedMovies] = useState([]);
-  const [availableDates, setAvailableDates] = useState([]);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [theatresWithShows, setTheatresWithShows] = useState([]);
+  const [availableDates, setAvailableDates] = useState(defaultDates);
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [theatresWithShows, setTheatresWithShows] = useState(() =>
+    getFallbackShowsForMovie(movieId, city)
+  );
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showsLoading, setShowsLoading] = useState(false);
@@ -62,19 +72,20 @@ const MovieDetails = () => {
           movieService.getMovieReviews(movieId),
         ]);
 
-        if (movieRes.success) {
+        if (movieRes.success && movieRes.data) {
           setMovie(movieRes.data);
           setRelatedMovies(movieRes.related || []);
-          // Increment view count (fire and forget)
           movieService.incrementView(movieId).catch(() => {});
         }
 
-        if (datesRes.success && datesRes.data.length > 0) {
+        if (datesRes?.success && Array.isArray(datesRes.data) && datesRes.data.length > 0) {
           setAvailableDates(datesRes.data);
-          setSelectedDate(datesRes.data[0]);
+          if (!selectedDate) {
+            setSelectedDate(datesRes.data[0]);
+          }
         }
 
-        if (reviewsRes.success) {
+        if (reviewsRes?.success && Array.isArray(reviewsRes.data)) {
           setReviews(reviewsRes.data);
         }
       } catch (error) {
@@ -90,18 +101,21 @@ const MovieDetails = () => {
   // 2. Fetch shows when selectedDate or city changes
   useEffect(() => {
     const fetchShowsForDate = async () => {
-      if (!selectedDate) return;
+      const activeDate = selectedDate || todayStr;
       try {
         setShowsLoading(true);
         const res = await movieService.getShowsForMovie(movieId, {
-          date: selectedDate,
+          date: activeDate,
           city,
         });
-        if (res.success) {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
           setTheatresWithShows(res.data);
+        } else {
+          setTheatresWithShows(getFallbackShowsForMovie(movieId, city));
         }
       } catch (error) {
-        console.error('Failed to load shows:', error);
+        console.warn('Falling back to default shows for movie:', error);
+        setTheatresWithShows(getFallbackShowsForMovie(movieId, city));
       } finally {
         setShowsLoading(false);
       }

@@ -261,6 +261,45 @@ const SeatSelection = () => {
         </div>
       )}
 
+      {/* Booking Step Indicator Bar */}
+      <div className="flex items-center justify-between p-3 rounded-2xl bg-cinema-900 border border-slate-800 text-xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-2">
+          <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center text-[11px]">
+            1
+          </span>
+          <span className="font-bold text-white whitespace-nowrap">Choose Seats ({selectedSeats.length} Selected)</span>
+        </div>
+
+        <div className="h-0.5 w-8 bg-slate-800 shrink-0" />
+
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById('snacks-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="flex items-center gap-2 hover:text-amber-300 transition-colors"
+        >
+          <span className={`w-6 h-6 rounded-full font-bold flex items-center justify-center text-[11px] ${
+            selectedSnacks.length > 0 ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-300'
+          }`}>
+            2
+          </span>
+          <span className={`font-bold whitespace-nowrap ${selectedSnacks.length > 0 ? 'text-amber-300' : 'text-slate-300'}`}>
+            🍿 Add Food & Snacks {selectedSnacks.length > 0 ? `(${selectedSnacks.length})` : ''}
+          </span>
+        </button>
+
+        <div className="h-0.5 w-8 bg-slate-800 shrink-0" />
+
+        <div className="flex items-center gap-2">
+          <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 font-bold flex items-center justify-center text-[11px]">
+            3
+          </span>
+          <span className="font-semibold text-slate-400 whitespace-nowrap">Checkout & Tickets</span>
+        </div>
+      </div>
+
       {/* Main Seat Map + Booking Summary Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Interactive Seat Map + Popcorn Food Lounge (Left 2 cols) */}
@@ -274,7 +313,9 @@ const SeatSelection = () => {
           />
 
           {/* Cinema Food & Popcorn Concession Lounge */}
-          <SnackSelector />
+          <div id="snacks-section" className="transition-all rounded-3xl">
+            <SnackSelector />
+          </div>
         </div>
 
         {/* Booking Summary Panel (Right 1 col) */}

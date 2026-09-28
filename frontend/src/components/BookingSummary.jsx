@@ -262,6 +262,37 @@ const BookingSummary = ({ movie, theatre, show, onProceedToPayment, isProcessing
         </div>
       </div>
 
+      {/* Popcorn & Food Lounge Quick Add Banner */}
+      {selectedSeats.length > 0 && selectedSnacks.length === 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById('snacks-section');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+              el.classList.add('ring-2', 'ring-amber-500');
+              setTimeout(() => el.classList.remove('ring-2', 'ring-amber-500'), 1500);
+            }
+          }}
+          className="w-full p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/10 border border-amber-500/30 hover:border-amber-400 text-left transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🍿</span>
+              <div>
+                <p className="text-xs font-bold text-amber-300 group-hover:text-amber-200">
+                  Add Popcorn & Snacks
+                </p>
+                <p className="text-[10px] text-slate-400">Combos & beverages delivered to seat</p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-black shrink-0 transition-colors">
+              + Add
+            </span>
+          </div>
+        </button>
+      )}
+
       {/* Proceed Button */}
       <button
         onClick={onProceedToPayment}
