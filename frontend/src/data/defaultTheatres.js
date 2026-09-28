@@ -133,6 +133,26 @@ export const getFallbackShowsForMovie = (movieId, city = 'Hyderabad') => {
   ];
 
   return theatresList.map((theatre, tIdx) => {
+    const shows = showTimes.map((st, sIdx) => ({
+      _id: `show_${movieId}_${theatre._id}_${sIdx}`,
+      id: `show_${movieId}_${theatre._id}_${sIdx}`,
+      movieId: movieId,
+      theatreId: theatre._id,
+      showTime: st.time,
+      startTime: st.time24,
+      format: st.format,
+      basePrice: st.price,
+      screenName: `Screen ${sIdx + 1}`,
+      availableSeats: 78 - sIdx * 8,
+      totalSeats: 120,
+    }));
+
+    const showsByFormat = {};
+    shows.forEach((s) => {
+      if (!showsByFormat[s.format]) showsByFormat[s.format] = [];
+      showsByFormat[s.format].push(s);
+    });
+
     return {
       theatre: {
         _id: theatre._id,
@@ -142,19 +162,8 @@ export const getFallbackShowsForMovie = (movieId, city = 'Hyderabad') => {
         address: theatre.address,
         amenities: theatre.amenities,
       },
-      shows: showTimes.map((st, sIdx) => ({
-        _id: `show_${movieId}_${theatre._id}_${sIdx}`,
-        id: `show_${movieId}_${theatre._id}_${sIdx}`,
-        movieId: movieId,
-        theatreId: theatre._id,
-        showTime: st.time,
-        startTime: st.time24,
-        format: st.format,
-        basePrice: st.price,
-        screenName: `Screen ${sIdx + 1}`,
-        availableSeats: 78 - sIdx * 8,
-        totalSeats: 120,
-      })),
+      shows,
+      showsByFormat,
     };
   });
 };

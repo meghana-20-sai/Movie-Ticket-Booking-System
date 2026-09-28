@@ -22,10 +22,10 @@ const TicketCard = ({ booking, onCancelBooking, showActions = true }) => {
     createdAt,
   } = booking;
 
-  const movie = movieId || {};
-  const theatre = theatreId || {};
-  const screen = screenId || {};
-  const show = showId || {};
+  const movie = (typeof movieId === 'object' && movieId?.title) ? movieId : (booking.movie || {});
+  const theatre = (typeof theatreId === 'object' && theatreId?.name) ? theatreId : (booking.theatre || {});
+  const screen = (typeof screenId === 'object' && screenId?.name) ? screenId : (booking.screen || booking.show?.screen || {});
+  const show = (typeof showId === 'object' && (showId?.startTime || showId?.showTime)) ? showId : (booking.show || {});
 
   const handleDownloadPDF = async () => {
     if (!ticketRef.current) return;

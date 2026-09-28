@@ -40,7 +40,18 @@ const TheatreCard = ({ theatreData, movie, selectedDate }) => {
   const navigate = useNavigate();
   const { setCurrentMovie, setCurrentTheatre, setCurrentDate, setCurrentShow } = useBooking();
 
-  const { theatre, showsByFormat } = theatreData;
+  const theatre = theatreData?.theatre || {};
+  let showsByFormat = theatreData?.showsByFormat;
+
+  if (!showsByFormat || typeof showsByFormat !== 'object' || Object.keys(showsByFormat).length === 0) {
+    showsByFormat = {};
+    const rawShows = theatreData?.shows || [];
+    rawShows.forEach((s) => {
+      const fmt = s.format || '2D';
+      if (!showsByFormat[fmt]) showsByFormat[fmt] = [];
+      showsByFormat[fmt].push(s);
+    });
+  }
 
   const handleSelectShow = (show) => {
     if (show.availabilityStatus === 'Sold Out') return;

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Booking } from '../models/Booking.js';
 import { Show } from '../models/Show.js';
 import { Movie } from '../models/Movie.js';
@@ -20,40 +21,41 @@ export const createBooking = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please select valid seats for the booking.' });
     }
 
-    const show = await Show.findById(showId)
-      .populate('movieId')
-      .populate('theatreId')
-      .populate('screenId');
-
-    if (!show) {
-      return res.status(404).json({ success: false, message: 'Show not found.' });
+    let show = null;
+    if (mongoose.Types.ObjectId.isValid(showId)) {
+      show = await Show.findById(showId)
+        .populate('movieId')
+        .populate('theatreId')
+        .populate('screenId');
     }
 
     const seatIds = selectedSeats.map((s) => s.seatId || `${s.row}-${s.number}`);
 
-    // Atomic Double Booking Check & Update on MongoDB Show model
-    // Uses $nin to guarantee no seat in seatIds is already booked
-    const updateResult = await Show.updateOne(
-      {
-        _id: showId,
-        bookedSeats: { $nin: seatIds },
-      },
-      {
-        $addToSet: { bookedSeats: { $each: seatIds } },
-      }
-    );
+    // Atomic Double Booking Check & Update on MongoDB Show model (if in DB)
+    if (show) {
+      const updateResult = await Show.updateOne(
+        {
+          _id: showId,
+          bookedSeats: { $nin: seatIds },
+        },
+        {
+          $addToSet: { bookedSeats: { $each: seatIds } },
+        }
+      );
 
-    if (updateResult.modifiedCount === 0) {
-      return res.status(409).json({
-        success: false,
-        message: 'One or more of the selected seats have just been booked by another user. Please choose alternative seats.',
-      });
+      if (updateResult.modifiedCount === 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'One or more of the selected seats have just been booked by another user. Please choose alternative seats.',
+        });
+      }
     }
 
     // Calculate Pricing
     let subtotal = 0;
+    const basePrice = show?.basePrice || selectedSeats[0]?.price || 200;
     const formattedSeats = selectedSeats.map((seat) => {
-      const seatPrice = seat.price || Math.round(show.basePrice * (seat.priceMultiplier || 1.0));
+      const seatPrice = seat.price || Math.round(basePrice * (seat.priceMultiplier || 1.0));
       subtotal += seatPrice;
       return {
         seatId: seat.seatId || `${seat.row}-${seat.number}`,
@@ -96,15 +98,19 @@ export const createBooking = async (req, res) => {
     const totalAmount = Math.max(0, subtotal + snackTotal + convenienceFee + tax - discount);
     const bookingReference = generateBookingReference();
 
+    const movieData = req.body.movie || show?.movieId || {};
+    const theatreData = req.body.theatre || show?.theatreId || {};
+    const showData = req.body.show || show || {};
+
     // Generate dynamic QR Code containing secure booking reference payload
     const qrPayload = {
       bookingReference,
-      showId: show._id,
-      movie: show.movieId.title,
-      theatre: show.theatreId.name,
-      screen: show.screenId.name,
-      date: show.date,
-      time: show.startTime,
+      showId: show?._id || showId,
+      movie: movieData.title || 'Cinema Movie',
+      theatre: theatreData.name || 'SmartCine Multiplex',
+      screen: showData.screenName || show?.screenId?.name || 'Screen 1',
+      date: showData.date || show?.date || new Date().toISOString().split('T')[0],
+      time: showData.startTime || showData.showTime || show?.startTime || '18:00',
       seats: seatIds,
       snacks: snacks || [],
       snackTotal,
@@ -114,12 +120,17 @@ export const createBooking = async (req, res) => {
     const qrCode = await generateQRCode(qrPayload);
 
     // Create Booking record
+    const validShowId = show?._id || (mongoose.Types.ObjectId.isValid(showId) ? showId : new mongoose.Types.ObjectId());
+    const validMovieId = show?.movieId?._id || (movieData._id && mongoose.Types.ObjectId.isValid(movieData._id) ? movieData._id : new mongoose.Types.ObjectId());
+    const validTheatreId = show?.theatreId?._id || (theatreData._id && mongoose.Types.ObjectId.isValid(theatreData._id) ? theatreData._id : new mongoose.Types.ObjectId());
+    const validScreenId = show?.screenId?._id || new mongoose.Types.ObjectId();
+
     const booking = await Booking.create({
       userId,
-      showId: show._id,
-      movieId: show.movieId._id,
-      theatreId: show.theatreId._id,
-      screenId: show.screenId._id,
+      showId: validShowId,
+      movieId: validMovieId,
+      theatreId: validTheatreId,
+      screenId: validScreenId,
       seats: formattedSeats,
       snacks: snacks || [],
       snackTotal,
@@ -127,7 +138,7 @@ export const createBooking = async (req, res) => {
       convenienceFee,
       tax,
       discount,
-      couponCode: appliedCoupon ? appliedCoupon.code : null,
+      couponCode: appliedCoupon ? appliedCoupon.code : couponCode,
       totalAmount,
       paymentStatus: 'paid',
       bookingStatus: 'confirmed',
@@ -166,10 +177,18 @@ export const createBooking = async (req, res) => {
       .populate('screenId')
       .populate('userId', 'name email phone');
 
+    const resultBooking = populatedBooking ? populatedBooking.toObject() : booking.toObject();
+    if (!resultBooking.movieId?.title && movieData.title) resultBooking.movieId = movieData;
+    if (!resultBooking.theatreId?.name && theatreData.name) resultBooking.theatreId = theatreData;
+    if (!resultBooking.showId?.showTime && showData) resultBooking.showId = showData;
+    resultBooking.movie = movieData;
+    resultBooking.theatre = theatreData;
+    resultBooking.show = showData;
+
     res.status(201).json({
       success: true,
       message: 'Booking confirmed successfully 🎉',
-      data: populatedBooking,
+      data: resultBooking,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

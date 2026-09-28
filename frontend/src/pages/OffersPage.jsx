@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Tag, Sparkles, Copy, Check, Percent, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Tag, Sparkles, Copy, Check, Percent, ShieldCheck, Ticket } from 'lucide-react';
 import { bookingService } from '../services/bookingService';
+import { DEFAULT_OFFERS } from '../data/defaultOffers';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const OffersPage = () => {
-  const [coupons, setCoupons] = useState([]);
+  const [coupons, setCoupons] = useState(DEFAULT_OFFERS);
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState('');
 
@@ -13,11 +15,14 @@ const OffersPage = () => {
       try {
         setLoading(true);
         const res = await bookingService.getCoupons({ activeOnly: 'true' });
-        if (res.success) {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
           setCoupons(res.data);
+        } else {
+          setCoupons(DEFAULT_OFFERS);
         }
       } catch (error) {
-        console.error('Failed to load coupons:', error);
+        console.warn('Falling back to default offers catalog:', error);
+        setCoupons(DEFAULT_OFFERS);
       } finally {
         setLoading(false);
       }
@@ -86,22 +91,32 @@ const OffersPage = () => {
                   {coupon.code}
                 </div>
 
-                <button
-                  onClick={() => handleCopy(coupon.code)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-brand-600 text-white text-xs font-bold transition-all"
-                >
-                  {copiedCode === coupon.code ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy Code</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleCopy(coupon.code)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-brand-600 text-white text-xs font-bold transition-all"
+                  >
+                    {copiedCode === coupon.code ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+
+                  <Link
+                    to="/movies"
+                    className="flex items-center gap-1 px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all shadow-md shadow-brand-600/20"
+                  >
+                    <Ticket className="w-3.5 h-3.5" />
+                    <span>Book</span>
+                  </Link>
+                </div>
               </div>
             </div>
           ))}

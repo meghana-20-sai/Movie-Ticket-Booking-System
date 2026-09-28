@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { Payment } from '../models/Payment.js';
 import { Show } from '../models/Show.js';
 
@@ -13,9 +14,9 @@ export const createPaymentOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing order parameters' });
     }
 
-    const show = await Show.findById(showId);
-    if (!show) {
-      return res.status(404).json({ success: false, message: 'Show not found' });
+    let show = null;
+    if (mongoose.Types.ObjectId.isValid(showId)) {
+      show = await Show.findById(showId);
     }
 
     // Generate unique provider order ID
@@ -29,7 +30,7 @@ export const createPaymentOrder = async (req, res) => {
         currency: 'INR',
         keyId: process.env.PAYMENT_KEY_ID || 'rzp_test_smartcine_public_key',
         businessName: 'SmartCine Cinemas',
-        description: `Booking for ${show.language} ${show.format}`,
+        description: show ? `Booking for ${show.language || 'Cinema'} ${show.format || '2D'}` : 'Cinema Admission Ticket & Concessions',
       },
     });
   } catch (error) {

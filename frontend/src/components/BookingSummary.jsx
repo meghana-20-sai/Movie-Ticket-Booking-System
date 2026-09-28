@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Ticket, Tag, Check, X, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Ticket, Tag, Check, X, ShieldCheck, ArrowRight, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useBooking } from '../context/BookingContext';
 import { bookingService } from '../services/bookingService';
+import { DEFAULT_OFFERS } from '../data/defaultOffers';
 
 const BookingSummary = ({ movie, theatre, show, onProceedToPayment, isProcessing }) => {
   const {
@@ -21,27 +22,33 @@ const BookingSummary = ({ movie, theatre, show, onProceedToPayment, isProcessing
   const [couponError, setCouponError] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponSuccess, setCouponSuccess] = useState('');
+  const [showOffersList, setShowOffersList] = useState(false);
 
-  const handleApplyCoupon = async (e) => {
-    e.preventDefault();
-    if (!couponCodeInput.trim()) return;
-
+  const applyCode = async (codeToApply) => {
+    if (!codeToApply) return;
     setCouponError('');
     setCouponSuccess('');
     setCouponLoading(true);
 
     try {
-      const res = await bookingService.validateCoupon(couponCodeInput.trim(), subtotal);
+      const res = await bookingService.validateCoupon(codeToApply, subtotal);
       if (res.success) {
         setCoupon(res.data);
         setCouponSuccess(res.message);
         setCouponCodeInput('');
+        setShowOffersList(false);
       }
     } catch (error) {
       setCouponError(error.message || 'Invalid coupon code');
     } finally {
       setCouponLoading(false);
     }
+  };
+
+  const handleApplyCoupon = async (e) => {
+    e.preventDefault();
+    if (!couponCodeInput.trim()) return;
+    await applyCode(couponCodeInput.trim());
   };
 
   const handleRemoveCoupon = () => {
@@ -136,6 +143,53 @@ const BookingSummary = ({ movie, theatre, show, onProceedToPayment, isProcessing
 
             {couponError && <p className="text-[11px] text-rose-400">{couponError}</p>}
             {couponSuccess && <p className="text-[11px] text-emerald-400">{couponSuccess}</p>}
+
+            {/* Quick 1-Click Offers Drawer Toggle */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowOffersList(!showOffersList)}
+                className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-cinema-850 hover:bg-slate-800 border border-slate-800 text-[11px] text-brand-300 font-semibold transition-all"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-brand-400" />
+                  <span>View Available Cinema Offers ({DEFAULT_OFFERS.length})</span>
+                </div>
+                {showOffersList ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+
+              {/* Available Offers Cards */}
+              {showOffersList && (
+                <div className="mt-2 space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {DEFAULT_OFFERS.map((off) => (
+                    <div
+                      key={off.code}
+                      className="p-2.5 rounded-xl bg-cinema-850 border border-slate-800/90 flex items-center justify-between gap-2 hover:border-brand-500/40 transition-all text-xs"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-white tracking-wider text-[11px] bg-slate-800 px-1.5 py-0.5 rounded">
+                            {off.code}
+                          </span>
+                          <span className="text-[10px] text-emerald-400 font-bold">
+                            {off.discountType === 'percentage' ? `${off.discountValue}% OFF` : `₹${off.discountValue} OFF`}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{off.description}</p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={couponLoading || selectedSeats.length === 0}
+                        onClick={() => applyCode(off.code)}
+                        className="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-bold text-[11px] shrink-0 transition-all shadow-sm"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </form>
         )}
       </div>

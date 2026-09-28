@@ -1,5 +1,6 @@
 import api from './api';
 import { generateFallbackSeatLayout } from '../data/defaultTheatres';
+import { DEFAULT_OFFERS } from '../data/defaultOffers';
 
 // Helper to manage local offline bookings
 const getLocalBookings = () => {
@@ -123,16 +124,68 @@ export const bookingService = {
     const local = getLocalBookings();
     try {
       const res = await api.get('/bookings/my');
-      if (res && res.success) {
-        // Merge without duplicates
-        const apiIds = new Set(res.data.map((b) => b._id || b.bookingReference));
-        const merged = [...res.data, ...local.filter((b) => !apiIds.has(b._id) && !apiIds.has(b.bookingReference))];
-        return { success: true, data: merged };
+      if (res && res.success && res.data) {
+        // Backend returns { upcoming: [...], past: [...], total: N } or an array
+        const backendUpcoming = Array.isArray(res.data.upcoming)
+          ? res.data.upcoming
+          : (Array.isArray(res.data) ? res.data : []);
+        const backendPast = Array.isArray(res.data.past) ? res.data.past : [];
+
+        // Distribute local offline bookings into upcoming/past if not already present in backend
+        const allBackendIds = new Set(
+          [...backendUpcoming, ...backendPast].map((b) => b._id || b.bookingReference)
+        );
+        const missingLocal = local.filter(
+          (b) => !allBackendIds.has(b._id) && !allBackendIds.has(b.bookingReference)
+        );
+
+        const now = new Date().toISOString().split('T')[0];
+        const combinedUpcoming = [...backendUpcoming];
+        const combinedPast = [...backendPast];
+
+        missingLocal.forEach((b) => {
+          const date = b.show?.date || b.createdAt?.split('T')[0] || now;
+          if (date >= now) {
+            combinedUpcoming.unshift(b);
+          } else {
+            combinedPast.unshift(b);
+          }
+        });
+
+        return {
+          success: true,
+          data: {
+            upcoming: combinedUpcoming,
+            past: combinedPast,
+            total: combinedUpcoming.length + combinedPast.length,
+          },
+        };
       }
-    } catch {
-      // Return local bookings
+    } catch (e) {
+      console.warn('[bookingService] Failed to fetch backend bookings, using local store:', e.message);
     }
-    return { success: true, data: local };
+
+    // Fallback using local bookings
+    const now = new Date().toISOString().split('T')[0];
+    const upcoming = [];
+    const past = [];
+    local.forEach((b) => {
+      const date = b.show?.date || b.createdAt?.split('T')[0] || now;
+      if (date >= now) {
+        upcoming.unshift(b);
+      } else {
+        past.unshift(b);
+      }
+    });
+
+    return {
+      success: true,
+      data: {
+        upcoming,
+        past,
+        total: local.length,
+      },
+    };
   },
 
   getBookingById: async (id) => {
@@ -171,18 +224,43 @@ export const bookingService = {
     } catch {}
 
     const cleanCode = (code || '').toUpperCase().trim();
-    if (cleanCode === 'SMARTCINE10') {
-      const discount = Math.round(subtotal * 0.1);
-      return { success: true, message: 'SMARTCINE10 Applied: 10% Off!', data: { code: cleanCode, discount } };
+    const matchedOffer = DEFAULT_OFFERS.find((o) => o.code === cleanCode);
+    if (matchedOffer) {
+      let discount = 0;
+      if (matchedOffer.discountType === 'percentage') {
+        discount = Math.round((subtotal * matchedOffer.discountValue) / 100);
+        if (matchedOffer.maximumDiscount) {
+          discount = Math.min(discount, matchedOffer.maximumDiscount);
+        }
+      } else {
+        discount = matchedOffer.discountValue;
+      }
+      discount = Math.min(discount, subtotal);
+      return {
+        success: true,
+        message: `${cleanCode} Applied: Saved ₹${discount}!`,
+        data: {
+          code: cleanCode,
+          discountType: matchedOffer.discountType,
+          discountValue: matchedOffer.discountValue,
+          discount,
+        },
+      };
     }
-    if (cleanCode === 'POPCORN50' || cleanCode === 'FIRST100') {
-      const discount = cleanCode === 'FIRST100' ? 100 : 50;
-      return { success: true, message: `${cleanCode} Applied: ₹${discount} Off!`, data: { code: cleanCode, discount } };
-    }
-    throw new Error('Invalid or expired coupon code. Try SMARTCINE10 or POPCORN50.');
+    throw new Error('Invalid or expired coupon code. Try WELCOME100, SMARTCINE10, or POPCORN50.');
   },
 
-  getCoupons: (params) => api.get('/coupons', { params }),
+  getCoupons: async (params) => {
+    try {
+      const res = await api.get('/coupons', { params });
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        return res;
+      }
+    } catch (e) {
+      console.warn('[bookingService] Using default offers catalog');
+    }
+    return { success: true, data: DEFAULT_OFFERS, fromFallback: true };
+  },
   createCoupon: (data) => api.post('/coupons', data),
   updateCoupon: (id, data) => api.put(`/coupons/${id}`, data),
   deleteCoupon: (id) => api.delete(`/coupons/${id}`),

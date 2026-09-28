@@ -1,0 +1,73 @@
+/**
+ * defaultOffers.js
+ * 
+ * Curated promotional codes, festival discounts, and partner bank offers for SmartCine.
+ */
+export const DEFAULT_OFFERS = [
+  {
+    _id: 'offer_welcome100',
+    code: 'WELCOME100',
+    description: 'Flat ₹100 instant discount on your first movie ticket booking',
+    discountType: 'flat',
+    discountValue: 100,
+    minimumAmount: 300,
+    maximumDiscount: 100,
+    validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+  },
+  {
+    _id: 'offer_smartcine10',
+    code: 'SMARTCINE10',
+    description: '10% instant discount on all blockbuster movie shows & premiere tickets',
+    discountType: 'percentage',
+    discountValue: 10,
+    minimumAmount: 250,
+    maximumDiscount: 150,
+    validUntil: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+  },
+  {
+    _id: 'offer_popcorn50',
+    code: 'POPCORN50',
+    description: 'Flat ₹50 OFF on Popcorn Concession Lounge Combos & Beverages',
+    discountType: 'flat',
+    discountValue: 50,
+    minimumAmount: 200,
+    maximumDiscount: 50,
+    validUntil: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+  },
+  {
+    _id: 'offer_imaxpass',
+    code: 'IMAXPASS',
+    description: 'Save ₹120 on Laser IMAX, ScreenX, and Dolby Atmos premium auditorium seats',
+    discountType: 'flat',
+    discountValue: 120,
+    minimumAmount: 400,
+    maximumDiscount: 120,
+    validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+  },
+  {
+    _id: 'offer_blockbuster',
+    code: 'BLOCKBUSTER',
+    description: 'Weekend Gala: 15% discount on night showtimes for group bookings of 2+ seats',
+    discountType: 'percentage',
+    discountValue: 15,
+    minimumAmount: 400,
+    maximumDiscount: 200,
+    validUntil: new Date(Date.now() + 75 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+  },
+  {
+    _id: 'offer_hdfcmovie',
+    code: 'HDFCMOVIE',
+    description: 'Instant ₹75 savings on ticket checkout when paying via UPI or Card',
+    discountType: 'flat',
+    discountValue: 75,
+    minimumAmount: 350,
+    maximumDiscount: 75,
+    validUntil: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+  },
+];

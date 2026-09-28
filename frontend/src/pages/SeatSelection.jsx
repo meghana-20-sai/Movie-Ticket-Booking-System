@@ -197,9 +197,10 @@ const SeatSelection = () => {
 
       const res = await bookingService.createBooking(bookingPayload);
 
-      if (res.success) {
+      if (res.success && res.data) {
         setIsPaymentModalOpen(false);
-        navigate(`/booking-success/${res.data._id}`, { state: { booking: res.data } });
+        const bookingId = res.data._id || res.data.id || `booking_${Date.now()}`;
+        navigate(`/booking-success/${bookingId}`, { state: { booking: res.data } });
       }
     } catch (error) {
       alert(error.message || 'Booking confirmation failed. Please contact support.');
@@ -294,7 +295,7 @@ const SeatSelection = () => {
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
-        show={showData}
+        show={showData || currentShow || { _id: showId, id: showId }}
         selectedSeats={selectedSeats}
         totalAmount={totalAmount}
         onPaymentSuccess={handlePaymentSuccess}
