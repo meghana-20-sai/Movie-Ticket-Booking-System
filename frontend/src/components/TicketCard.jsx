@@ -143,6 +143,26 @@ const TicketCard = ({ booking, onCancelBooking, showActions = true }) => {
                 ))}
               </div>
             </div>
+
+            {/* Popcorn & Cinema Food Items */}
+            {booking.snacks?.length > 0 && (
+              <div className="pt-2">
+                <span className="text-[10px] uppercase font-bold text-slate-500 flex items-center gap-1">
+                  <span>🍿</span>
+                  <span>Cinema Food & Popcorn</span>
+                </span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {booking.snacks.map((snk, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-[11px]"
+                    >
+                      {snk.icon || '🍿'} {snk.name} x{snk.quantity}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

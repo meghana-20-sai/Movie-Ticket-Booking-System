@@ -6,16 +6,24 @@ import {
   getFallbackByIndustry,
   getFallbackTopIMDb,
 } from '../data/defaultMovies';
+import {
+  DEFAULT_THEATRES,
+  DEFAULT_CITIES,
+  getFallbackShowsForMovie,
+  generateFallbackSeatLayout,
+} from '../data/defaultTheatres';
 
 /**
- * Resilient API wrapper: if the backend is waking up, sleeping, or unconfigured on Vercel,
- * it safely falls back to the curated authentic IMDb catalog so the user never sees an empty screen.
+ * Resilient API wrapper: if the backend is waking up, sleeping, or unconfigured,
+ * it safely falls back so users never see an empty screen.
  */
 const safeCall = async (apiCall, fallbackData) => {
   try {
     const res = await apiCall();
-    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-      return res;
+    if (res && res.success && Array.isArray(res.data)) {
+      if (res.data.length > 0) return res;
+      // If array is empty, fall back to default catalog/shows/theatres
+      return { success: true, data: fallbackData, fromFallback: true };
     }
     if (res && res.success && res.data) {
       return res;
@@ -63,9 +71,22 @@ export const movieService = {
   incrementView: (id) => api.patch(`/movies/${id}/view`),
 
   // ── Theatres & Shows ─────────────────────────────────────
-  getTheatres: (params) => api.get('/theatres', { params }),
-  getCities: () => api.get('/theatres/cities'),
-  getTheatreById: (id) => api.get(`/theatres/${id}`),
+  getTheatres: (params) =>
+    safeCall(
+      () => api.get('/theatres', { params }),
+      params?.city && params.city !== 'all'
+        ? DEFAULT_THEATRES.filter((t) => t.city.toLowerCase() === params.city.toLowerCase())
+        : DEFAULT_THEATRES
+    ),
+  getCities: () => safeCall(() => api.get('/theatres/cities'), DEFAULT_CITIES),
+  getTheatreById: async (id) => {
+    try {
+      const res = await api.get(`/theatres/${id}`);
+      if (res && res.success && res.data) return res;
+    } catch (e) {}
+    const found = DEFAULT_THEATRES.find((t) => t._id === id || t.id === id) || DEFAULT_THEATRES[0];
+    return { success: true, data: found, fromFallback: true };
+  },
   createTheatre: (data) => api.post('/theatres', data),
   updateTheatre: (id, data) => api.put(`/theatres/${id}`, data),
   deleteTheatre: (id) => api.delete(`/theatres/${id}`),
@@ -79,9 +100,31 @@ export const movieService = {
 
   // ── Shows ────────────────────────────────────────────────
   getShows: (params) => api.get('/shows', { params }),
-  getShowsForMovie: (movieId, params) => api.get(`/shows/movie/${movieId}`, { params }),
-  getAvailableDates: (movieId, params) => api.get(`/shows/movie/${movieId}/dates`, { params }),
-  getShowById: (id) => api.get(`/shows/${id}`),
+  getShowsForMovie: (movieId, params) =>
+    safeCall(
+      () => api.get(`/shows/movie/${movieId}`, { params }),
+      getFallbackShowsForMovie(movieId, params?.city)
+    ),
+  getAvailableDates: (movieId, params) => {
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    return safeCall(
+      () => api.get(`/shows/movie/${movieId}/dates`, { params }),
+      dates
+    );
+  },
+  getShowById: async (id) => {
+    try {
+      const res = await api.get(`/shows/${id}`);
+      if (res && res.success && res.data) return res;
+    } catch (e) {}
+    const layout = generateFallbackSeatLayout(id);
+    return { success: true, data: layout.show, fromFallback: true };
+  },
   createShow: (data) => api.post('/shows', data),
   updateShow: (id, data) => api.put(`/shows/${id}`, data),
   deleteShow: (id) => api.delete(`/shows/${id}`),

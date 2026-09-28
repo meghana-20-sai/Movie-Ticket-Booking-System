@@ -48,8 +48,22 @@ function App() {
           <SocketProvider>
             <BookingProvider>
               <Routes>
-                {/* Customer Facing Application */}
-                <Route path="/" element={<UserLayout />}>
+                {/* Authentication Routes (Public) */}
+                <Route element={<UserLayout />}>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                </Route>
+
+                {/* Customer Facing Application - Fully Protected: Must login to access anything */}
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <UserLayout />
+                    </ProtectedRoute>
+                  }
+                >
                   <Route index element={<Home />} />
                   <Route path="movies" element={<Movies />} />
                   <Route path="movies/:movieId" element={<MovieDetails />} />
@@ -57,37 +71,9 @@ function App() {
                   <Route path="offers" element={<OffersPage />} />
                   <Route path="seat-selection/:showId" element={<SeatSelection />} />
                   <Route path="booking-success/:bookingId" element={<BookingSuccess />} />
-
-                  {/* Protected Customer Routes */}
-                  <Route
-                    path="my-bookings"
-                    element={
-                      <ProtectedRoute>
-                        <MyBookings />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="bookings/:bookingId"
-                    element={
-                      <ProtectedRoute>
-                        <BookingDetails />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="profile"
-                    element={
-                      <ProtectedRoute>
-                        <Profile />
-                      </ProtectedRoute>
-                    }
-                  />
-
-                  {/* Authentication Routes */}
-                  <Route path="login" element={<Login />} />
-                  <Route path="register" element={<Register />} />
-                  <Route path="forgot-password" element={<ForgotPassword />} />
+                  <Route path="my-bookings" element={<MyBookings />} />
+                  <Route path="bookings/:bookingId" element={<BookingDetails />} />
+                  <Route path="profile" element={<Profile />} />
                 </Route>
 
                 {/* Admin Portal Suite */}

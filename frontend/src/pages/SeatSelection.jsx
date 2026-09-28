@@ -8,6 +8,7 @@ import { useSocket } from '../context/SocketContext';
 import SeatMap from '../components/SeatMap';
 import BookingSummary from '../components/BookingSummary';
 import PaymentModal from '../components/PaymentModal';
+import SnackSelector from '../components/SnackSelector';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const SeatSelection = () => {
@@ -21,6 +22,8 @@ const SeatSelection = () => {
     currentTheatre,
     currentShow,
     selectedSeats,
+    selectedSnacks = [],
+    snackTotal = 0,
     toggleSeat,
     clearSeats,
     setLockExpiresAt,
@@ -170,6 +173,9 @@ const SeatSelection = () => {
     try {
       const bookingPayload = {
         showId,
+        movie,
+        theatre,
+        show: showData,
         selectedSeats: selectedSeats.map((s) => ({
           seatId: s.id || s.seatId,
           row: s.row,
@@ -177,6 +183,14 @@ const SeatSelection = () => {
           category: s.category,
           price: s.price,
         })),
+        snacks: selectedSnacks.map((snk) => ({
+          id: snk.id,
+          name: snk.name,
+          price: snk.price,
+          quantity: snk.quantity,
+          icon: snk.icon,
+        })),
+        snackTotal,
         couponCode: coupon ? coupon.code : null,
         paymentDetails,
       };
@@ -248,8 +262,8 @@ const SeatSelection = () => {
 
       {/* Main Seat Map + Booking Summary Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Interactive Seat Map (Left 2 cols) */}
-        <div className="lg:col-span-2">
+        {/* Interactive Seat Map + Popcorn Food Lounge (Left 2 cols) */}
+        <div className="lg:col-span-2 space-y-8">
           <SeatMap
             rows={rows}
             lockedSeatsMap={lockedSeatsMap}
@@ -257,6 +271,9 @@ const SeatSelection = () => {
             currentUserId={user?._id}
             onSeatClick={handleSeatClick}
           />
+
+          {/* Cinema Food & Popcorn Concession Lounge */}
+          <SnackSelector />
         </div>
 
         {/* Booking Summary Panel (Right 1 col) */}

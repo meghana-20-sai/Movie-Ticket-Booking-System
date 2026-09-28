@@ -13,7 +13,7 @@ import { generateQRCode } from '../utils/generateQRCode.js';
 // @route   POST /api/bookings
 export const createBooking = async (req, res) => {
   try {
-    const { showId, selectedSeats, couponCode, paymentDetails } = req.body;
+    const { showId, selectedSeats, snacks = [], couponCode, paymentDetails } = req.body;
     const userId = req.user._id;
 
     if (!showId || !selectedSeats || !Array.isArray(selectedSeats) || selectedSeats.length === 0) {
@@ -87,7 +87,13 @@ export const createBooking = async (req, res) => {
       }
     }
 
-    const totalAmount = Math.max(0, subtotal + convenienceFee + tax - discount);
+    // Calculate Snacks Total
+    const snackTotal = (snacks || []).reduce(
+      (sum, snk) => sum + (Number(snk.price) || 0) * (Number(snk.quantity) || 1),
+      0
+    );
+
+    const totalAmount = Math.max(0, subtotal + snackTotal + convenienceFee + tax - discount);
     const bookingReference = generateBookingReference();
 
     // Generate dynamic QR Code containing secure booking reference payload
@@ -100,6 +106,8 @@ export const createBooking = async (req, res) => {
       date: show.date,
       time: show.startTime,
       seats: seatIds,
+      snacks: snacks || [],
+      snackTotal,
       totalAmount,
       customer: req.user.name,
     };
@@ -113,6 +121,8 @@ export const createBooking = async (req, res) => {
       theatreId: show.theatreId._id,
       screenId: show.screenId._id,
       seats: formattedSeats,
+      snacks: snacks || [],
+      snackTotal,
       subtotal,
       convenienceFee,
       tax,

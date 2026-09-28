@@ -8,16 +8,18 @@ export const BookingProvider = ({ children }) => {
   const [currentDate, setCurrentDate] = useState(null);
   const [currentShow, setCurrentShow] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [selectedSnacks, setSelectedSnacks] = useState([]);
   const [coupon, setCoupon] = useState(null);
   const [lockExpiresAt, setLockExpiresAt] = useState(null);
   const [remainingLockSeconds, setRemainingLockSeconds] = useState(0);
 
   // Subtotal calculation
   const subtotal = selectedSeats.reduce((sum, s) => sum + (s.price || 0), 0);
+  const snackTotal = selectedSnacks.reduce((sum, s) => sum + s.price * s.quantity, 0);
   const convenienceFee = selectedSeats.length > 0 ? 40 : 0;
   const tax = selectedSeats.length > 0 ? Math.round((subtotal + convenienceFee) * 0.05) : 0;
   const discount = coupon?.discount || 0;
-  const totalAmount = Math.max(0, subtotal + convenienceFee + tax - discount);
+  const totalAmount = Math.max(0, subtotal + snackTotal + convenienceFee + tax - discount);
 
   // Countdown timer for seat locking
   useEffect(() => {
@@ -34,6 +36,7 @@ export const BookingProvider = ({ children }) => {
       if (diff <= 0) {
         setLockExpiresAt(null);
         setSelectedSeats([]);
+        setSelectedSnacks([]);
         setCoupon(null);
       }
     };
@@ -58,8 +61,38 @@ export const BookingProvider = ({ children }) => {
     });
   };
 
+  const addSnack = (snack) => {
+    setSelectedSnacks((prev) => {
+      const existing = prev.find((s) => s.id === snack.id);
+      if (existing) {
+        return prev.map((s) =>
+          s.id === snack.id ? { ...s, quantity: s.quantity + 1 } : s
+        );
+      }
+      return [...prev, { ...snack, quantity: 1 }];
+    });
+  };
+
+  const removeSnack = (snackId) => {
+    setSelectedSnacks((prev) => {
+      const existing = prev.find((s) => s.id === snackId);
+      if (!existing) return prev;
+      if (existing.quantity <= 1) {
+        return prev.filter((s) => s.id !== snackId);
+      }
+      return prev.map((s) =>
+        s.id === snackId ? { ...s, quantity: s.quantity - 1 } : s
+      );
+    });
+  };
+
+  const clearSnacks = () => {
+    setSelectedSnacks([]);
+  };
+
   const clearSeats = () => {
     setSelectedSeats([]);
+    setSelectedSnacks([]);
     setLockExpiresAt(null);
     setCoupon(null);
   };
@@ -70,6 +103,7 @@ export const BookingProvider = ({ children }) => {
     setCurrentDate(null);
     setCurrentShow(null);
     setSelectedSeats([]);
+    setSelectedSnacks([]);
     setCoupon(null);
     setLockExpiresAt(null);
   };
@@ -89,6 +123,11 @@ export const BookingProvider = ({ children }) => {
         setSelectedSeats,
         toggleSeat,
         clearSeats,
+        selectedSnacks,
+        addSnack,
+        removeSnack,
+        clearSnacks,
+        snackTotal,
         coupon,
         setCoupon,
         lockExpiresAt,

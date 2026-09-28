@@ -38,6 +38,19 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
     seats: [bookedSeatSchema],
+    snacks: [
+      {
+        id: { type: String, required: true },
+        name: { type: String, required: true },
+        price: { type: Number, required: true },
+        quantity: { type: Number, required: true, default: 1 },
+        icon: { type: String, default: '🍿' },
+      },
+    ],
+    snackTotal: {
+      type: Number,
+      default: 0,
+    },
     subtotal: {
       type: Number,
       required: true,

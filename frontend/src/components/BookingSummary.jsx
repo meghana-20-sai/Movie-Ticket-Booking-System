@@ -6,6 +6,8 @@ import { bookingService } from '../services/bookingService';
 const BookingSummary = ({ movie, theatre, show, onProceedToPayment, isProcessing }) => {
   const {
     selectedSeats,
+    selectedSnacks = [],
+    snackTotal = 0,
     coupon,
     setCoupon,
     subtotal,
@@ -138,12 +140,50 @@ const BookingSummary = ({ movie, theatre, show, onProceedToPayment, isProcessing
         )}
       </div>
 
+      {/* Selected Food & Popcorn Items */}
+      {selectedSnacks.length > 0 && (
+        <div className="pt-3 border-t border-slate-800/80">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span className="text-slate-400 flex items-center gap-1.5">
+              <span>🍿</span>
+              <span>Cinema Snacks:</span>
+            </span>
+            <span className="font-bold text-amber-400">
+              ₹{snackTotal}
+            </span>
+          </div>
+
+          <div className="space-y-1.5 max-h-28 overflow-y-auto">
+            {selectedSnacks.map((snack) => (
+              <div
+                key={snack.id}
+                className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-200"
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span>{snack.icon || '🍿'}</span>
+                  <span className="truncate">{snack.name}</span>
+                  <span className="text-amber-400 font-bold">x{snack.quantity}</span>
+                </div>
+                <span className="font-semibold text-white ml-2">₹{snack.price * snack.quantity}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Itemized Price Breakdown */}
       <div className="pt-3 border-t border-slate-800/80 space-y-2 text-xs">
         <div className="flex items-center justify-between text-slate-400">
           <span>Tickets Subtotal</span>
           <span className="text-white font-medium">₹{subtotal}</span>
         </div>
+
+        {snackTotal > 0 && (
+          <div className="flex items-center justify-between text-amber-400">
+            <span>Food & Beverages</span>
+            <span className="font-semibold">₹{snackTotal}</span>
+          </div>
+        )}
 
         <div className="flex items-center justify-between text-slate-400">
           <span>Convenience Fee</span>

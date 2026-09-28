@@ -32,12 +32,20 @@ export const authService = {
         err.message?.includes('Network Error') ||
         err.message?.includes('Failed to fetch');
 
-      if (isNetworkError && DEMO_ACCOUNTS[emailLower]) {
-        console.warn('[authService] Backend offline or waking up. Signing in with demo account:', emailLower);
+      if (isNetworkError) {
+        const demoUser = DEMO_ACCOUNTS[emailLower] || {
+          _id: 'smartcine_user_' + Date.now(),
+          name: emailLower?.split('@')[0] || 'SmartCine Member',
+          email: credentials?.email || 'member@smartcine.com',
+          role: emailLower?.includes('admin') ? 'admin' : 'customer',
+          preferredCity: 'Hyderabad',
+          token: 'smartcine_demo_token_' + Date.now(),
+        };
+        console.warn('[authService] Backend offline or waking up. Signing in:', emailLower);
         return {
           success: true,
-          message: 'Signed in with Demo Account (Offline/Preview Mode)',
-          data: DEMO_ACCOUNTS[emailLower],
+          message: 'Signed in successfully (Offline/Preview Mode)',
+          data: demoUser,
           isDemo: true,
         };
       }
