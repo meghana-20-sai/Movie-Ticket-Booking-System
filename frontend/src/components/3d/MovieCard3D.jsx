@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Star, Clock, Film, Sparkles, Play, Ticket, Award, ExternalLink } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { getDummyMoviePoster, createSvgFallbackPoster } from '../../utils/dummyImages';
 
 export default function MovieCard3D({ movie, onWatchTrailer, badgeType }) {
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
@@ -63,10 +64,14 @@ export default function MovieCard3D({ movie, onWatchTrailer, badgeType }) {
           className="absolute inset-0 w-full h-full overflow-hidden"
         >
           <img
-            src={movie.poster}
+            src={movie.poster || getDummyMoviePoster(movie._id)}
             alt={movie.title}
             className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-110 group-hover:brightness-105"
             loading="lazy"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = createSvgFallbackPoster(movie.title);
+            }}
           />
         </div>
 

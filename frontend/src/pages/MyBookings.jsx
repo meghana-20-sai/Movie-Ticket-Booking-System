@@ -13,6 +13,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { bookingService } from '../services/bookingService';
+import { getDummyMoviePoster, createSvgFallbackPoster } from '../utils/dummyImages';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 
@@ -138,9 +139,13 @@ const MyBookings = () => {
                 <div className="flex gap-4">
                   <div className="w-20 sm:w-24 aspect-[2/3] rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-md">
                     <img
-                      src={movie.poster || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=200'}
-                      alt={movie.title}
+                      src={movie.poster || getDummyMoviePoster(movie._id)}
+                      alt={movie.title || 'Movie'}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = createSvgFallbackPoster(movie.title);
+                      }}
                     />
                   </div>
 

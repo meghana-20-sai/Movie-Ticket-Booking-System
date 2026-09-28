@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, MapPin, Sparkles, Volume2 } from 'lucide-react';
 import { useBooking } from '../context/BookingContext';
+import { getDummyCinemaImage, createSvgFallbackCinema } from '../utils/dummyImages';
 
 const formatTime12h = (time24) => {
   if (!time24) return '';
@@ -68,15 +69,25 @@ const TheatreCard = ({ theatreData, movie, selectedDate }) => {
     <div className="bg-cinema-900 border border-slate-800 rounded-2xl p-5 md:p-6 transition-all shadow-lg hover:border-slate-700">
       {/* Theatre Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
-        <div>
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-brand-500" />
-            <h3 className="font-bold text-white text-base sm:text-lg">{theatre.name}</h3>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-slate-700/60 shadow-md">
+            <img
+              src={theatre.image || getDummyCinemaImage(theatre._id)}
+              alt={theatre.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = createSvgFallbackCinema(theatre.name);
+              }}
+            />
           </div>
-          <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            <span>{theatre.address}, {theatre.city}</span>
-          </p>
+          <div>
+            <h3 className="font-bold text-white text-base sm:text-lg">{theatre.name}</h3>
+            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span>{theatre.address}, {theatre.city}</span>
+            </p>
+          </div>
         </div>
 
         {/* Amenities badges */}

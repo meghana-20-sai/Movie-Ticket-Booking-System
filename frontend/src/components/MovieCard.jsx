@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Clock, Ticket, Play, Award } from 'lucide-react';
+import { getDummyMoviePoster, createSvgFallbackPoster } from '../utils/dummyImages';
 
 const MovieCard = ({ movie, onWatchTrailer }) => {
   if (!movie) return null;
@@ -13,10 +14,14 @@ const MovieCard = ({ movie, onWatchTrailer }) => {
       {/* Poster Image */}
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#0a0e1a]">
         <img
-          src={movie.poster}
+          src={movie.poster || getDummyMoviePoster(movie._id)}
           alt={movie.title}
           loading="lazy"
           className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-500 ease-out"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = createSvgFallbackPoster(movie.title);
+          }}
         />
 
         {/* Gradient Overlay */}

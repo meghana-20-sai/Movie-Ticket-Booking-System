@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Download, Printer, Film, MapPin, Calendar, Clock, QrCode, XCircle } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { getDummyMoviePoster, createSvgFallbackPoster } from '../utils/dummyImages';
 
 const TicketCard = ({ booking, onCancelBooking, showActions = true }) => {
   const ticketRef = useRef(null);
@@ -89,10 +90,14 @@ const TicketCard = ({ booking, onCancelBooking, showActions = true }) => {
           <div className="sm:col-span-1 flex flex-col items-center">
             <div className="w-28 sm:w-full aspect-[2/3] rounded-2xl overflow-hidden bg-slate-800 border border-slate-700/80 shadow-md">
               <img
-                src={movie.poster || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300'}
-                alt={movie.title}
+                src={movie.poster || getDummyMoviePoster(movie._id)}
+                alt={movie.title || 'Movie'}
                 className="w-full h-full object-cover"
                 crossOrigin="anonymous"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = createSvgFallbackPoster(movie.title);
+                }}
               />
             </div>
             <span className="mt-2.5 px-2.5 py-0.5 rounded-full bg-brand-950 border border-brand-500/30 text-brand-300 font-bold text-[10px] uppercase">

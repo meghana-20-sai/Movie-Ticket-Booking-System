@@ -19,6 +19,12 @@ import { movieService } from '../services/movieService';
 import { useAuth } from '../context/AuthContext';
 import { useBooking } from '../context/BookingContext';
 import { getFallbackMoviesForTheatre } from '../data/defaultTheatres';
+import {
+  getDummyCinemaImage,
+  getDummyMoviePoster,
+  createSvgFallbackCinema,
+  createSvgFallbackPoster,
+} from '../utils/dummyImages';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 
@@ -132,14 +138,33 @@ const TheatresPage = () => {
             return (
               <div
                 key={theatre._id}
-                className={`bg-cinema-900 border rounded-3xl p-6 shadow-xl space-y-5 flex flex-col justify-between transition-all duration-300 ${
+                className={`bg-cinema-900 border rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 flex flex-col justify-between transition-all duration-300 ${
                   isExpanded ? 'border-brand-500 shadow-brand-500/10' : 'border-slate-800 hover:border-slate-700'
                 }`}
               >
-                <div>
+                <div className="space-y-4">
+                  {/* Cinema Photo Banner with Fallback */}
+                  <div className="relative h-44 rounded-2xl overflow-hidden bg-slate-800 border border-slate-700/60 shadow-md group">
+                    <img
+                      src={theatre.image || getDummyCinemaImage(theatre._id)}
+                      alt={theatre.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = createSvgFallbackCinema(theatre.name);
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-cinema-900 via-cinema-900/30 to-transparent" />
+                    
+                    {/* City Badge Overlay */}
+                    <span className="absolute top-3 right-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-brand-500/40 text-brand-300 font-bold text-[11px] shadow-lg">
+                      📍 {theatre.city}
+                    </span>
+                  </div>
+
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-2xl bg-brand-600/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
+                      <div className="w-10 h-10 rounded-2xl bg-brand-600/20 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0">
                         <Building2 className="w-5 h-5" />
                       </div>
                       <div>
@@ -149,13 +174,13 @@ const TheatresPage = () => {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-400 mt-3 flex items-start gap-1.5 leading-relaxed">
+                  <p className="text-xs text-slate-400 flex items-start gap-1.5 leading-relaxed">
                     <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
                     <span>{theatre.address}</span>
                   </p>
 
                   {/* Formats */}
-                  <div className="mt-4 flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     {theatre.formats?.map((fmt) => (
                       <span
                         key={fmt}
@@ -171,7 +196,7 @@ const TheatresPage = () => {
 
                   {/* Amenities */}
                   {theatre.amenities && (
-                    <div className="mt-4 pt-3 border-t border-slate-800/80">
+                    <div className="pt-2 border-t border-slate-800/80">
                       <span className="text-[10px] uppercase font-bold text-slate-500 block mb-2">
                         Multiplex Features
                       </span>
@@ -213,19 +238,38 @@ const TheatresPage = () => {
                         {theatreShowsData.movies.map((mov) => (
                           <div
                             key={mov._id}
-                            className="p-3 rounded-2xl bg-cinema-850 border border-slate-800 space-y-2"
+                            className="p-3 rounded-2xl bg-cinema-850 border border-slate-800 space-y-2.5"
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-white truncate max-w-[180px]">
-                                {mov.title}
-                              </span>
-                              <span className="text-[10px] text-amber-400 font-bold">
-                                ⭐ {mov.rating}
-                              </span>
+                            <div className="flex items-center gap-2.5">
+                              {/* Movie Poster Thumbnail with Fallback */}
+                              <div className="w-10 h-14 rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700/60 shadow-sm">
+                                <img
+                                  src={mov.poster || getDummyMoviePoster(mov._id)}
+                                  alt={mov.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = createSvgFallbackPoster(mov.title);
+                                  }}
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-white truncate max-w-[150px]">
+                                    {mov.title}
+                                  </span>
+                                  <span className="text-[10px] text-amber-400 font-bold">
+                                    ⭐ {mov.rating}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                                  {mov.language} • {mov.genre?.join(', ')}
+                                </p>
+                              </div>
                             </div>
 
                             {/* Showtimes Buttons */}
-                            <div className="flex flex-wrap gap-1.5 pt-1">
+                            <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-800/60">
                               {mov.shows.map((shw) => (
                                 <button
                                   key={shw._id}

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { movieService } from '../services/movieService';
 import { getFallbackShowsForMovie } from '../data/defaultTheatres';
+import { getDummyMoviePoster, createSvgFallbackPoster } from '../utils/dummyImages';
 import { useAuth } from '../context/AuthContext';
 import MovieCard3D from '../components/3d/MovieCard3D';
 import DateSelector from '../components/DateSelector';
@@ -176,9 +177,13 @@ const MovieDetails = () => {
         {/* Backdrop Image */}
         <div className="absolute inset-0 z-0">
           <img
-            src={movie.backdrop || movie.poster}
+            src={movie.backdrop || movie.poster || getDummyMoviePoster(movie._id)}
             alt={movie.title}
             className="w-full h-full object-cover object-top scale-105"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = createSvgFallbackPoster(movie.title);
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#070913] via-[#070913]/85 to-black/40"></div>
         </div>
@@ -189,7 +194,15 @@ const MovieDetails = () => {
             {/* Poster Card with 3D Tilt Hover */}
             <div className="hidden md:block md:col-span-1">
               <div className="aspect-[2/3] w-full rounded-2xl overflow-hidden bg-[#0d1222] border border-slate-700/80 shadow-[0_20px_50px_-10px_rgba(225,29,72,0.35)] hover:scale-105 transition-transform duration-500">
-                <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" />
+                <img
+                  src={movie.poster || getDummyMoviePoster(movie._id)}
+                  alt={movie.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = createSvgFallbackPoster(movie.title);
+                  }}
+                />
               </div>
             </div>
 
